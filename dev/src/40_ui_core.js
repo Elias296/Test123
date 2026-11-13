@@ -15,7 +15,7 @@ const SAMPLE = {
   text: 'Willkommen im Tintenwerk\n\n' + SAMPLE_MARK + ' Sie zeigt, wie dein Text als echte Vektor-Handschrift auf einem Goodnotes-Blatt aussieht.\n\n' +
     '# So funktioniert es\n- Screenshots importieren und Text lokal erkennen lassen\n- Text prüfen, korrigieren und auf Wunsch natürlicher formulieren\n- Schriftstil, Papier und Tinte wählen\n- Als native .goodnotes-Datei oder PDF exportieren\n\n' +
     '## Gut zu wissen\n1. Jede Zeile sitzt exakt auf der Grundlinie.\n2. Die Schrift lässt sich in Goodnotes mit Lasso und Radierer bearbeiten.\n3. Alles bleibt auf deinem iPad – 100 % lokal.\n\n' +
-    'Tippe oben auf „Neue leere Notiz“ oder importiere deinen ersten Screenshot.'
+    'Tippe auf „Neue Notiz“ oder importiere deinen ersten Screenshot.'
 };
 
 /* ---------- Speicher ---------- */
@@ -89,8 +89,9 @@ function setMode(mode) {
   $$('#modeSeg button').forEach(b => b.classList.toggle('on', b.dataset.mode === mode));
   $$('#panel > section').forEach(s => { s.hidden = s.dataset.panel !== mode; });
   $('#panel').scrollTop = 0;
+  closePop();
   if (mode === 'schrift') renderTiles();
-  if (mode === 'blatt') refreshBlattPanel();
+  if (mode !== 'import') refreshBlattPanel();
   setView('panel');
 }
 function setView(v) {
@@ -120,7 +121,7 @@ function renderPage(ctx, layout, pi, scale, mark) {
 }
 function sheetScale() {
   if (S.zoom !== 'fit') return parseFloat(S.zoom) * 96 / 72;
-  const sc = $('#sheetScroll'), w = sc.clientWidth - 48, h = sc.clientHeight - 152;
+  const sc = $('#sheetScroll'), w = sc.clientWidth - 56, h = sc.clientHeight - 124;
   return clamp(Math.min(w / TW.PAGE_W, h / TW.PAGE_H), 0.3, 4);
 }
 function drawSheet() {
@@ -137,10 +138,10 @@ function drawSheet() {
 function updatePager() {
   const n = S.layout.pages.length;
   S.page = clamp(S.page, 0, n - 1);
-  $('#pgLabel').textContent = `Seite ${S.page + 1} von ${n}`;
+  $('#pgLabel').textContent = `${S.page + 1} / ${n}`; $('#pgLabel').setAttribute('aria-label', `Seite ${S.page + 1} von ${n}`);
   $('#pgPrev').disabled = S.page <= 0; $('#pgNext').disabled = S.page >= n - 1;
   const st = S.layout.stats;
-  $('#statsChip').textContent = `${n} ${n === 1 ? 'Seite' : 'Seiten'} · ${st.strokes.toLocaleString('de-DE')} Stiftstriche`;
+  $('#statsChip').textContent = `${n} ${n === 1 ? 'Seite' : 'Seiten'} · ${st.strokes.toLocaleString('de-DE')} Striche`;
 }
 let layT = 0;
 function relayout(now) {
@@ -153,10 +154,17 @@ function relayout(now) {
 }
 $('#pgPrev').addEventListener('click', () => { S.page--; updatePager(); drawSheet(); $('#sheetScroll').scrollTop = 0; });
 $('#pgNext').addEventListener('click', () => { S.page++; updatePager(); drawSheet(); $('#sheetScroll').scrollTop = 0; });
-$('#zoomSeg').addEventListener('click', e => {
-  const b = e.target.closest('button'); if (!b) return;
-  S.zoom = b.dataset.zoom; saveUi(); syncZoom(); drawSheet();
-});
+/* Zoom in der Bottom-Pill: − / Anzeige (Tipp = Anpassen ↔ 100 %) / + */
+const ZOOMS = [0.5, 0.75, 1, 1.25, 1.5, 2, 3];
+function stepZoom(dir) {
+  const cur = sheetScale() * 72 / 96;
+  const next = dir > 0 ? ZOOMS.find(z => z > cur + 0.01) : ZOOMS.slice().reverse().find(z => z < cur - 0.01);
+  if (!next) return;
+  S.zoom = String(next); saveUi(); syncZoom(); drawSheet();
+}
+$('#zoomIn').addEventListener('click', () => stepZoom(1));
+$('#zoomOut').addEventListener('click', () => stepZoom(-1));
+$('#zoomLabel').addEventListener('click', () => { S.zoom = S.zoom === 'fit' ? '1' : 'fit'; saveUi(); syncZoom(); drawSheet(); });
 /* Zwei-Finger-Zoom (Touch) und Strg+Mausrad/Trackpad-Pinch; Verschieben läuft über natives Scrollen */
 (function () {
   const sc = $('#sheetScroll'); let p0 = null, raf = 0;
@@ -192,7 +200,7 @@ $('#zoomSeg').addEventListener('click', e => {
     clearTimeout(zoomTo.t); zoomTo.t = setTimeout(saveUi, 400);
   }, { passive: false });
 })();
-function syncZoom() { $$('#zoomSeg button').forEach(b => b.classList.toggle('on', b.dataset.zoom === String(S.zoom))); }
+function syncZoom() { $('#zoomLabel').textContent = S.zoom === 'fit' ? 'Anpassen' : Math.round(parseFloat(S.zoom) * 100) + ' %'; }
 let rsT = 0;
 window.addEventListener('resize', () => { clearTimeout(rsT); rsT = setTimeout(() => { drawSheet(); if (!$('#cropModal').hidden) fitCrop(); }, 80); });
 
@@ -209,6 +217,15 @@ function updateEditorStats() {
   const t = S.draft.text.trim(), words = t ? t.split(/\s+/).length : 0;
   $('#editorStats').textContent = `${words.toLocaleString('de-DE')} Wörter · ${S.draft.text.length.toLocaleString('de-DE')} Zeichen · automatisch lokal gespeichert`;
 }
+/* Hochzahlen (x^2, x2 -> x²) beim Verlassen des Feldes setzen – nicht während des Tippens */
+function applyTypo(el, key) {
+  if (S.settings.autoSup === false) return;
+  const t = TW.typo(el.value);
+  if (t === el.value) return;
+  el.value = t; S.draft[key] = t; saveDraft(); relayout();
+}
+editor.addEventListener('change', () => applyTypo(editor, 'text'));
+titleInput.addEventListener('change', () => applyTypo(titleInput, 'title'));
 editor.addEventListener('input', () => {
   S.draft.text = editor.value;
   if (S.draft.isSample) { S.draft.isSample = false; $('#sampleBadge').hidden = true; updateAppendOption(); }
@@ -483,8 +500,34 @@ document.addEventListener('paste', e => {
   if (f.length) { e.preventDefault(); runImport(f); }
 });
 
+/* ---------- Info-Popover: Details erst auf Tipp ---------- */
+const pop = $('#pop'); let popBtn = null;
+const infoFill = {};
+function closePop() { if (popBtn) popBtn.setAttribute('aria-expanded', 'false'); popBtn = null; pop.hidden = true; }
+function openPop(btn) {
+  const tpl = document.getElementById('info-' + btn.dataset.info); if (!tpl) return;
+  pop.innerHTML = ''; pop.appendChild(tpl.content.cloneNode(true));
+  if (infoFill[btn.dataset.info]) infoFill[btn.dataset.info](pop);
+  $$('input[data-opt]', pop).forEach(i => { i.checked = S.settings[i.dataset.opt] !== false; });
+  pop.hidden = false; popBtn = btn; btn.setAttribute('aria-expanded', 'true');
+  const r = btn.getBoundingClientRect(), w = pop.offsetWidth, h = pop.offsetHeight, vw = window.innerWidth, vh = window.innerHeight;
+  let top = r.bottom + 6; if (top + h > vh - 12) top = Math.max(12, r.top - h - 6);
+  pop.style.left = clamp(r.right - w, 12, vw - w - 12) + 'px'; pop.style.top = top + 'px';
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest('.info');
+  if (b) { e.preventDefault(); if (popBtn === b) closePop(); else openPop(b); return; }
+  if (!pop.hidden && !e.target.closest('#pop')) closePop();
+});
+pop.addEventListener('change', e => {
+  const k = e.target.dataset && e.target.dataset.opt; if (!k) return;
+  S.settings[k] = e.target.checked; saveSettings(); relayout(true);
+});
+$('#panel').addEventListener('scroll', () => { if (!pop.hidden) closePop(); }, { passive: true });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closePop(); });
+
 /* Schnittstellen für die weiteren Teile */
-const APP = { runImport, $, $$, clamp, esc, K, LS, IDB, S, SAMPLE_MARK, toast, confirmDialog, openModal, closeModal, downloadBlob, safeName, setMode, setView, relayout, drawSheet, renderPage, snapshot, setDraft, syncDraftUi, saveSettings, syncZoom, showStaging };
+const APP = { infoFill, closePop, runImport, $, $$, clamp, esc, K, LS, IDB, S, SAMPLE_MARK, toast, confirmDialog, openModal, closeModal, downloadBlob, safeName, setMode, setView, relayout, drawSheet, renderPage, snapshot, setDraft, syncDraftUi, saveSettings, syncZoom, showStaging };
 window.TWApp.APP = APP;
 let renderTiles = () => {}, refreshBlattPanel = () => {}, updateWarnings = () => {};
 APP.hook = (name, fn) => { if (name === 'tiles') renderTiles = fn; else if (name === 'blatt') refreshBlattPanel = fn; else if (name === 'warn') updateWarnings = fn; };

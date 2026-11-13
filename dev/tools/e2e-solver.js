@@ -20,10 +20,10 @@ export async function pipeline(task,model,opts){opts.progress_callback({status:'
     if(f&&fs.existsSync(f))return route.fulfill({path:f,contentType:f.endsWith('.js')?'text/javascript':f.endsWith('.wasm')?'application/wasm':'application/octet-stream'});route.abort();});
   const pg=await ctx.newPage();const errs=[];pg.on('console',m=>{if(m.type()==='error')errs.push(m.text())});pg.on('pageerror',e=>errs.push('PAGEERROR '+e.message));
   await pg.goto('http://127.0.0.1:8765/Tintenwerk.html');await pg.waitForTimeout(400);
-  console.log('solve buttons disabled before model:',await pg.evaluate(()=>[...document.querySelectorAll('#btnSolvePages,#btnSolveEditor')].map(b=>b.disabled)),'| name:',await pg.inputValue('#stuName'));
-  await pg.selectOption('#aiModel','besser');console.log('load btn:',await pg.textContent('#btnLoadModel'));
+  console.log('solve buttons disabled before model (now: tap loads):',await pg.evaluate(()=>[...document.querySelectorAll('#btnSolvePages,#btnSolveEditor')].map(b=>b.disabled)),'| name:',await pg.inputValue('#stuName'));
+  await pg.click('#aiHelp summary');await pg.selectOption('#aiModel','besser');console.log('load btn:',await pg.textContent('#btnLoadModel'));
   // 1) Laden starten, nach Download-Ende ist die Seite bedienbar und Abbrechen geht
-  await pg.click('#aiHelp summary');await pg.check('#aiNoCache');
+  await pg.check('#aiNoCache');
   await pg.click('#btnLoadModel');await pg.click('#confirmYes');
   await pg.waitForFunction(()=>/Download fertig/.test(document.querySelector('#modelMsg').textContent),null,{timeout:20000});
   console.log('stage msg:',(await pg.textContent('#modelMsg')).slice(0,90));
@@ -31,7 +31,7 @@ export async function pipeline(task,model,opts){opts.progress_callback({status:'
   await pg.click('#btnCancelModel');await pg.waitForTimeout(200);
   console.log('after cancel: load btn visible',await pg.evaluate(()=>!document.querySelector('#btnLoadModel').hidden&&!document.querySelector('#btnLoadModel').disabled),'| cancel hidden',await pg.evaluate(()=>document.querySelector('#btnCancelModel').hidden),'| select enabled',await pg.evaluate(()=>!document.querySelector('#aiModel').disabled));
   // 2) erneut laden, diesmal bis zum Ende
-  await pg.click('#btnLoadModel');await pg.click('#confirmYes');await pg.waitForSelector('#btnRewrite:not([hidden])',{timeout:30000});
+  await pg.click('#btnLoadModel');await pg.click('#confirmYes');await pg.waitForFunction(()=>TWApp.AI.state==='ready',null,{timeout:30000});
   console.log('log:\n'+await pg.textContent('#aiLogText'));
   console.log('hint:',await pg.textContent('#solveHint'));
   // Buchseite
@@ -53,5 +53,5 @@ export async function pipeline(task,model,opts){opts.progress_callback({status:'
   await pg.evaluate(()=>{const e=document.querySelector('#editor');e.value='Fotosynthese\n\nDie Fotosynthese wandelt Licht um. Dabei entstehen aus 6 CO2 und 6 H2O genau 1 Molekül Glucose sowie 6 O2.';e.dispatchEvent(new Event('input'))});
   await pg.click('#btnRewrite');await pg.waitForFunction(()=>document.querySelector('#cmpProgress').textContent==='fertig',null,{timeout:20000});
   console.log('rewrite via worker:',JSON.stringify((await pg.inputValue('#cmpAi')).slice(0,90)),'| take enabled',await pg.evaluate(()=>!document.querySelector('#cmpTake').disabled));await pg.click('#cmpDiscard');
-  await pg.selectOption('#aiModel','schnell');await pg.waitForTimeout(100);console.log('after model switch: rewrite hidden',await pg.evaluate(()=>document.querySelector('#btnRewrite').hidden),'| solve disabled',await pg.evaluate(()=>document.querySelector('#btnSolvePages').disabled),'| load btn',await pg.textContent('#btnLoadModel'));
+  await pg.selectOption('#aiModel','schnell');await pg.waitForTimeout(100);console.log('after model switch: state',await pg.evaluate(()=>TWApp.AI.state),'| solve enabled',await pg.evaluate(()=>!document.querySelector('#btnSolvePages').disabled),'| load btn',await pg.textContent('#btnLoadModel'));
   console.log('errors',errs);await b.close();})().catch(e=>{console.error('E2E FAIL',e);process.exit(1)});

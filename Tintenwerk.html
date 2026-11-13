@@ -7,16 +7,19 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Tintenwerk">
-<meta name="theme-color" content="#F2EFE9">
+<meta name="theme-color" content="#F8F9FA">
 <meta name="format-detection" content="telephone=no">
 <title>Tintenwerk</title>
 <link rel="apple-touch-icon" id="touchIcon" href="data:,">
 <style>
+/* ===== Design-System: Alabaster, weiße Karten mit 1px-Rahmen, Tintenblau ===== */
 :root{
-  --bg:#F2EFE9; --glass:rgba(255,255,255,.88); --line:#E2DDD5; --blue:#1E3A8A; --blue-d:#172554;
-  --amber:#D97706; --warn-bg:#FEF3C7; --warn-fg:#92400E; --text:#1C1917; --muted:#57534E;
-  --ok:#15803D; --err:#B91C1C; --shadow:0 8px 30px rgba(0,0,0,.06); --r:16px;
-  --font:-apple-system,BlinkMacSystemFont,"SF Pro Text",sans-serif;
+  --bg:#F8F9FA; --card:#FFFFFF; --line:#E5E7EB; --line-2:#D1D5DB; --fill:#F1F3F5;
+  --blue:#1E3A8A; --blue-d:#172554; --blue-soft:#EEF2FF;
+  --amber:#B45309; --warn-bg:#FEF3C7; --warn-fg:#92400E; --warn-line:#FCD34D;
+  --text:#111827; --muted:#6B7280; --ok:#15803D; --ok-soft:#DCFCE7; --err:#B91C1C;
+  --r:14px; --r-s:10px; --tap:44px;
+  --font:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",sans-serif;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 [hidden]{display:none!important}
@@ -24,136 +27,161 @@ html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);color:var(--
 body{height:100dvh;display:flex;flex-direction:column;padding:env(safe-area-inset-top) env(safe-area-inset-right) 0 env(safe-area-inset-left)}
 button,input,textarea,select{font:inherit;color:inherit}
 button{cursor:pointer;touch-action:manipulation;-webkit-user-select:none;user-select:none}
-h1,h2,h3,p{margin:0}
-svg{display:block}
+h1,h2,h3,h4,p{margin:0}
+svg{display:block;flex:none}
+:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
 
 /* ---------- Top-Navigation ---------- */
-.topbar{flex:0 0 60px;height:60px;display:flex;align-items:center;gap:10px;padding:0 14px;background:var(--glass);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);border-bottom:1px solid var(--line);position:relative;z-index:20}
-.brand{display:flex;align-items:center;gap:9px;min-width:0;flex:1 1 0}
-.brand .logo{width:34px;height:34px;flex:none;border-radius:10px;background:var(--blue);display:grid;place-items:center;box-shadow:0 2px 8px rgba(30,58,138,.28)}
-.brand .name{font-weight:700;font-size:17px;letter-spacing:-.2px;flex:none}
-.title-input{flex:1 1 60px;min-width:60px;max-width:280px;height:44px;border:1px solid transparent;border-radius:10px;background:transparent;padding:0 10px;font-size:15px;color:var(--muted);text-overflow:ellipsis}
-.title-input:hover{border-color:var(--line)}
-.title-input:focus{outline:none;border-color:var(--blue);background:#fff;color:var(--text)}
-.seg{display:inline-flex;background:#E9E5DD;border-radius:12px;padding:3px;gap:2px;flex:none}
-.seg button{min-height:44px;padding:0 12px;border:0;border-radius:9px;background:transparent;color:var(--muted);font-weight:600;font-size:14px;white-space:nowrap;display:flex;align-items:center;gap:6px}
-.seg button .n{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;background:rgba(87,83,78,.14);font-size:12px}
-.seg button.on{background:#fff;color:var(--blue);box-shadow:0 1px 4px rgba(0,0,0,.1)}
+.topbar{flex:0 0 60px;height:60px;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:12px;padding:0 14px;background:var(--card);border-bottom:1px solid var(--line);position:relative;z-index:20}
+.brand{display:flex;align-items:center;gap:10px;min-width:0}
+.brand .logo{width:36px;height:36px;flex:none;border-radius:10px;background:var(--blue);display:grid;place-items:center}
+.title-input{flex:1 1 80px;min-width:60px;max-width:320px;height:var(--tap);border:1px solid transparent;border-radius:var(--r-s);background:transparent;padding:0 10px;font-size:16px;font-weight:600;letter-spacing:-.1px;text-overflow:ellipsis}
+.title-input::placeholder{color:#9CA3AF;font-weight:500}
+.title-input:hover{background:var(--fill)}
+.title-input:focus{outline:none;border-color:var(--blue);background:#fff}
+.actions{display:flex;align-items:center;gap:4px;justify-content:flex-end}
+
+/* Segmented Control */
+.seg{display:inline-flex;background:var(--fill);border-radius:12px;padding:3px;gap:2px;flex:none}
+.seg button{min-height:var(--tap);padding:0 14px;border:0;border-radius:9px;background:transparent;color:var(--muted);font-weight:600;font-size:14.5px;white-space:nowrap;display:flex;align-items:center;justify-content:center;gap:7px}
+.seg button .n{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;background:#E5E7EB;font-size:12px;color:var(--muted)}
+.seg button.on{background:#fff;color:var(--blue);box-shadow:0 0 0 1px var(--line),0 1px 2px rgba(17,24,39,.06)}
 .seg button.on .n{background:var(--blue);color:#fff}
-.seg.small button{min-height:44px;padding:0 12px;font-size:13.5px}
-.seg.fill{display:flex;width:100%}.seg.fill button{flex:1;justify-content:center;padding:0 6px}
-.actions{display:flex;align-items:center;gap:2px;flex:0 0 auto;justify-content:flex-end}
-.icon-btn{width:44px;height:44px;flex:none;border:0;border-radius:11px;background:transparent;display:grid;place-items:center;color:var(--muted)}
-.icon-btn:hover{background:rgba(0,0,0,.05)}
-.icon-btn:disabled{opacity:.32;cursor:default;background:transparent}
-.btn{min-height:44px;padding:0 14px;border-radius:11px;border:1px solid var(--line);background:#fff;font-weight:600;font-size:14.5px;display:inline-flex;align-items:center;justify-content:center;gap:8px;text-align:center;text-decoration:none;color:var(--text)}
-.btn:active{transform:scale(.985)}
+.seg.fill{display:flex;width:100%}.seg.fill button{flex:1;padding:0 6px}
+.seg.small button{font-size:14px}
+
+/* Buttons */
+.icon-btn{width:var(--tap);height:var(--tap);flex:none;border:0;border-radius:11px;background:transparent;display:grid;place-items:center;color:#374151}
+.icon-btn:hover{background:var(--fill)}
+.icon-btn:disabled{opacity:.3;cursor:default;background:transparent}
+.btn{min-height:var(--tap);padding:0 16px;border-radius:11px;border:1px solid var(--line-2);background:#fff;font-weight:600;font-size:15px;display:inline-flex;align-items:center;justify-content:center;gap:8px;text-align:center;text-decoration:none;color:var(--text)}
+.btn:active{background:var(--fill)}
 .btn:disabled{opacity:.45;cursor:default}
-.btn-primary{background:var(--blue);border-color:var(--blue);color:#fff;box-shadow:0 2px 10px rgba(30,58,138,.25)}
+.btn-primary{background:var(--blue);border-color:var(--blue);color:#fff}
 .btn-primary:hover,.btn-primary:active{background:var(--blue-d);border-color:var(--blue-d)}
-.btn-amber{background:var(--amber);border-color:var(--amber);color:#fff}
-.btn-ghost{background:transparent}
-.btn-danger{color:var(--err);border-color:#F1C7C7;background:#fff}
+.btn-amber{background:var(--blue);border-color:var(--blue);color:#fff}
+.btn-amber:active{background:var(--blue-d)}
+.btn-ghost{background:transparent;border-color:transparent;color:#374151}
+.btn-ghost:hover{background:var(--fill)}
+.btn-danger{color:var(--err);border-color:#F3C6C6;background:#fff}
 .btn-block{display:flex;width:100%}
-.cta{margin-left:6px;white-space:nowrap}
-.cta .long{display:inline}.cta .short{display:none}
+.btn-sm{padding:0 12px;font-size:14px}
+.cta{padding:0 18px;margin-left:6px}
+.info{width:var(--tap);height:var(--tap);margin:-10px -10px -10px 0;flex:none;border:0;background:transparent;border-radius:50%;display:grid;place-items:center;color:#9CA3AF}
+.info:hover,.info[aria-expanded=true]{color:var(--blue)}
 
 /* ---------- Hauptbereich ---------- */
 .subtabs{display:none;padding:8px 14px 0}
 main{flex:1 1 auto;min-height:0;display:flex}
-.panel{flex:0 0 clamp(380px,35vw,440px);min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px 12px calc(20px + env(safe-area-inset-bottom)) 14px;display:flex;flex-direction:column;gap:12px}
-.panel>section{display:flex;flex-direction:column;gap:12px}
-.card{background:var(--glass);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);padding:14px}
-.card h3{font-size:15px;font-weight:700;margin-bottom:4px;display:flex;align-items:center;gap:8px}
-.card .sub{color:var(--muted);font-size:13px;margin-bottom:10px}
-.card.stage-card{border:1.5px solid var(--amber);background:#FFFBF2}
-.card.stage-card h3{color:#9A5B06}
+.panel{flex:0 0 clamp(420px,40vw,580px);min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px 16px calc(24px + env(safe-area-inset-bottom));border-right:1px solid var(--line);background:var(--bg)}
+.panel>section{display:flex;flex-direction:column;gap:14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:16px}
+.card-h{display:flex;align-items:center;gap:8px;min-height:24px;margin-bottom:12px}
+.card-h h3{font-size:16px;font-weight:700;letter-spacing:-.1px}
+.card h3{font-size:16px;font-weight:700}
+.one{color:var(--muted);font-size:13.5px;margin:-6px 0 12px}
+.card.stage-card{border-color:var(--blue);box-shadow:0 0 0 3px var(--blue-soft)}
 .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .grow{flex:1 1 auto}
 .stack{display:flex;flex-direction:column;gap:8px}
-label.lbl,.lbl{display:block;font-size:12.5px;font-weight:600;color:var(--muted);margin:10px 0 5px;letter-spacing:.1px}
-.field{width:100%;min-height:44px;border:1px solid var(--line);border-radius:12px;background:#fff;padding:0 12px;font-size:15px}
-.field:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px rgba(30,58,138,.12)}
-textarea{width:100%;border:1px solid var(--line);border-radius:12px;background:#fff;padding:11px 12px;resize:vertical;font-size:15px;line-height:1.45}
-textarea:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px rgba(30,58,138,.12)}
-#editor{min-height:240px}
-#stagingText{min-height:170px;border-color:#EBCB95}
-.hint{font-size:12.5px;color:var(--muted)}
-.badge{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:999px;font-size:12.5px;font-weight:600;background:#EEF2FF;color:var(--blue)}
-.badge.ok{background:#DCFCE7;color:#166534}.badge.off{background:#F1EEE8;color:var(--muted)}.badge.warn{background:var(--warn-bg);color:var(--warn-fg)}
-.badge i{width:8px;height:8px;border-radius:50%;background:currentColor;display:inline-block}
-.warnbox{background:var(--warn-bg);color:var(--warn-fg);border:1px solid #FCD34D;border-radius:12px;padding:10px 12px;font-size:13.5px}
-.warnbox b{font-weight:700}
-.warnbox .chars{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
-.warnbox .chars span{background:#fff;border:1px solid #FCD34D;border-radius:7px;padding:2px 8px;font-size:15px;min-width:28px;text-align:center}
-.infobox{background:#EEF2FF;color:#1E3A8A;border:1px solid #C7D2FE;border-radius:12px;padding:10px 12px;font-size:13px}
-.progress{height:8px;border-radius:99px;background:#E9E5DD;overflow:hidden}
+.lbl{display:block;font-size:13px;font-weight:600;color:var(--muted);margin:14px 0 6px}
+.lbl:first-child{margin-top:0}
+textarea,.field{width:100%;border:1px solid var(--line-2);border-radius:12px;background:#fff;font-size:16px}
+textarea{padding:12px 13px;resize:vertical;line-height:1.45}
+.field{min-height:var(--tap);padding:0 12px}
+textarea:focus,.field:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px rgba(30,58,138,.12)}
+#editor{min-height:300px}
+#stagingText{min-height:180px}
+.hint{font-size:13px;color:var(--muted)}
+.badge{display:inline-flex;align-items:center;gap:6px;min-height:24px;padding:2px 10px;border-radius:999px;font-size:12.5px;font-weight:600;background:var(--blue-soft);color:var(--blue);white-space:nowrap}
+.badge.ok{background:var(--ok-soft);color:#166534}.badge.off{background:var(--fill);color:var(--muted)}.badge.warn{background:var(--warn-bg);color:var(--warn-fg)}
+.badge i{width:7px;height:7px;border-radius:50%;background:currentColor;display:inline-block}
+.warnbox{background:var(--warn-bg);color:var(--warn-fg);border:1px solid var(--warn-line);border-radius:12px;padding:10px 12px;font-size:13.5px}
+.warnbox .chars,.infobox .chars{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+.chars span{background:#fff;border:1px solid var(--warn-line);border-radius:7px;padding:2px 8px;font-size:15px;min-width:28px;text-align:center;color:var(--text)}
+.infobox{background:var(--blue-soft);color:var(--blue);border:1px solid #C7D2FE;border-radius:12px;padding:10px 12px;font-size:13.5px}
+.infobox .chars span{border-color:#C7D2FE}
+.progress{height:6px;border-radius:99px;background:var(--fill);overflow:hidden}
 .progress>i{display:block;height:100%;width:0;background:var(--blue);border-radius:99px;transition:width .2s}
-.progress.amber>i{background:var(--amber)}
-.radio{display:flex;gap:10px;align-items:flex-start;min-height:44px;padding:9px 10px;border:1px solid var(--line);border-radius:12px;background:#fff;cursor:pointer}
-.radio input{width:20px;height:20px;margin:1px 0 0;accent-color:var(--blue);flex:none}
-.radio.on{border-color:var(--blue);background:#F5F7FF}
+.progress.thin{height:4px}
+.radio{display:flex;gap:12px;align-items:center;min-height:56px;padding:10px 12px;border:1px solid var(--line-2);border-radius:12px;background:#fff;cursor:pointer}
+.radio input{width:22px;height:22px;margin:0;accent-color:var(--blue);flex:none}
+.radio.on{border-color:var(--blue);background:#F8FAFF;box-shadow:0 0 0 1px var(--blue)}
 .radio.disabled{opacity:.5}
-.radio small{display:block;color:var(--muted);font-size:12.5px}
-.swatches{display:flex;gap:8px;flex-wrap:wrap}
-.swatch{width:44px;height:44px;border-radius:50%;border:2px solid transparent;background:transparent;padding:4px;display:grid;place-items:center}
-.swatch i{display:block;width:30px;height:30px;border-radius:50%;box-shadow:inset 0 0 0 1px rgba(0,0,0,.12)}
+.radio b{font-weight:600}
+.radio small{display:block;color:var(--muted);font-size:13px}
+.swatches{display:flex;gap:6px;flex-wrap:wrap}
+.swatch{width:48px;height:48px;border-radius:50%;border:2px solid transparent;background:transparent;padding:0;display:grid;place-items:center}
+.swatch i{display:block;width:32px;height:32px;border-radius:50%;box-shadow:inset 0 0 0 1px rgba(0,0,0,.12)}
 .swatch.on{border-color:var(--blue)}
-.switch{display:flex;align-items:center;gap:10px;min-height:44px;cursor:pointer}
-.switch input{width:22px;height:22px;accent-color:var(--blue)}
-.checks{list-style:none;margin:8px 0 0;padding:0;display:flex;flex-direction:column;gap:6px}
+.switch{display:flex;align-items:center;gap:12px;min-height:var(--tap);cursor:pointer;font-size:15px}
+.switch input{width:24px;height:24px;accent-color:var(--blue);flex:none;margin:0}
+.checks{list-style:none;margin:10px 0 0;padding:0;display:flex;flex-direction:column;gap:7px}
+.checks:empty{display:none}
 .checks li{display:flex;gap:8px;font-size:13.5px;align-items:flex-start}
 .checks li .ic{flex:none;width:20px;height:20px;border-radius:50%;display:grid;place-items:center;color:#fff;font-size:12px;font-weight:700;background:var(--ok);margin-top:1px}
-.checks li.bad .ic{background:var(--err)}.checks li.warn .ic{background:var(--amber)}
+.checks li.bad .ic{background:var(--err)}.checks li.warn .ic{background:#D97706}
 .checks li small{display:block;color:var(--muted);font-size:12px;word-break:break-word}
+details.fold{border-top:1px solid var(--line);margin:14px -16px -16px;padding:0 16px}
+details.fold>summary{list-style:none;min-height:48px;display:flex;align-items:center;gap:8px;cursor:pointer;font-size:14px;font-weight:600;color:#374151}
+details.fold>summary::-webkit-details-marker{display:none}
+details.fold>summary::after{content:"";margin-left:auto;width:8px;height:8px;border-right:2px solid #9CA3AF;border-bottom:2px solid #9CA3AF;transform:rotate(45deg);transition:transform .15s}
+details.fold[open]>summary::after{transform:rotate(-135deg)}
+details.fold>.fold-body{padding:0 0 16px}
+pre.log{white-space:pre-wrap;word-break:break-word;background:var(--fill);border-radius:10px;padding:8px 10px;margin:8px 0 0;font:11.5px/1.45 ui-monospace,Menlo,monospace;color:var(--muted);min-height:20px}
+pre.log:empty{display:none}
 
-/* Handschrift-Kacheln */
-.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(52px,1fr));gap:7px}
-.tile{position:relative;aspect-ratio:1;min-height:52px;border:1px solid var(--line);border-radius:12px;background:#fff;display:grid;place-items:center;padding:0;font-size:22px;color:#A8A29E;overflow:hidden}
-.tile.done{color:var(--text);border-color:#BBD7C4;background:#FBFEFB}
-.tile .lab{position:absolute;left:5px;top:2px;font-size:10.5px;color:var(--muted);font-weight:600}
-.tile .chk{position:absolute;right:4px;top:4px;width:15px;height:15px;border-radius:50%;background:var(--ok);display:grid;place-items:center}
-.tile svg.pv{width:78%;height:78%;margin-top:6px}
-.grp-h{display:flex;justify-content:space-between;align-items:baseline;margin:12px 0 7px;font-size:13px;font-weight:700}
-.grp-h span{font-weight:600;color:var(--muted);font-size:12px}
+/* Handschrift-Kacheln: 6er-Raster, fertige Zeichen mit grünem Rahmen und Punkt */
+.tiles{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px}
+.tile{position:relative;aspect-ratio:1;min-height:var(--tap);border:1px solid var(--line-2);border-radius:12px;background:#fff;display:grid;place-items:center;padding:0;font-size:22px;color:#9CA3AF;overflow:hidden}
+.tile.done{border:1.5px solid #4ADE80;background:#FBFEFC;color:var(--text)}
+.tile.done::after{content:"";position:absolute;right:6px;bottom:6px;width:7px;height:7px;border-radius:50%;background:var(--ok)}
+.tile .lab{position:absolute;left:6px;top:3px;font-size:10.5px;color:var(--muted);font-weight:600}
+.tile svg.pv{width:74%;height:74%;margin-top:6px}
+.grp-h{display:flex;justify-content:space-between;align-items:baseline;margin:16px 0 8px;font-size:13px;font-weight:600;color:#374151}
+.grp-h span{font-weight:500;color:var(--muted);font-size:12.5px}
 
-/* ---------- Vorschau-Atelier ---------- */
-.stage{flex:1 1 auto;min-width:0;min-height:0;position:relative;display:flex;flex-direction:column}
-.stage-top{position:absolute;top:12px;left:0;right:0;display:flex;justify-content:center;gap:10px;z-index:5;pointer-events:none;padding:0 12px;flex-wrap:wrap}
-.stage-top>*{pointer-events:auto}
-.glass{background:var(--glass);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);border:1px solid var(--line);box-shadow:var(--shadow)}
-.stage-top .seg{border:1px solid var(--line);box-shadow:var(--shadow);background:rgba(233,229,221,.9)}
-.chip{display:inline-flex;align-items:center;height:50px;padding:0 14px;border-radius:12px;font-size:13px;color:var(--muted);font-weight:600}
-.sheet-scroll{flex:1 1 auto;min-height:0;overflow:auto;-webkit-overflow-scrolling:touch;display:flex;padding:72px 24px 80px}
-.sheet-scroll{touch-action:pan-x pan-y;overscroll-behavior:contain}
-.sheet{margin:auto;flex:none;background:#fff;border-radius:3px;box-shadow:0 1px 2px rgba(0,0,0,.08),0 12px 36px rgba(60,50,30,.16);position:relative}
-.sheet canvas{display:block;width:100%;height:100%;border-radius:3px}
-.pager{position:absolute;left:50%;bottom:calc(18px + env(safe-area-inset-bottom));transform:translateX(-50%);display:flex;align-items:center;gap:2px;border-radius:999px;padding:3px;z-index:5}
-.pager .icon-btn{border-radius:50%}
-.pager span{min-width:118px;text-align:center;font-weight:600;font-size:14px;font-variant-numeric:tabular-nums}
+/* ---------- Vorschau: ruhige, gepunktete Arbeitsfläche ---------- */
+.stage{flex:1 1 auto;min-width:0;min-height:0;position:relative;display:flex;flex-direction:column;background-color:#F3F4F6;background-image:radial-gradient(#D5D9DF 1px,transparent 1.2px);background-size:20px 20px}
+.sheet-scroll{flex:1 1 auto;min-height:0;overflow:auto;-webkit-overflow-scrolling:touch;display:flex;padding:28px 28px 96px;touch-action:pan-x pan-y;overscroll-behavior:contain}
+.sheet{margin:auto;flex:none;background:#fff;border-radius:2px;box-shadow:0 0 0 1px rgba(17,24,39,.06),0 6px 24px rgba(17,24,39,.10);position:relative}
+.sheet canvas{display:block;width:100%;height:100%;border-radius:2px}
+.pill{position:absolute;left:50%;bottom:calc(18px + env(safe-area-inset-bottom));transform:translateX(-50%);display:flex;align-items:center;gap:2px;border-radius:999px;padding:4px;z-index:5;background:rgba(255,255,255,.94);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);border:1px solid var(--line);box-shadow:0 4px 16px rgba(17,24,39,.08)}
+.pill .icon-btn{border-radius:50%}
+.pill .lab{min-width:78px;height:var(--tap);border:0;background:transparent;border-radius:999px;font-weight:600;font-size:14px;font-variant-numeric:tabular-nums;padding:0 8px}
+.pill .lab:hover{background:var(--fill)}
+.pill span.lab{display:grid;place-items:center;min-width:64px}
+.pill .sep{width:1px;height:24px;background:var(--line);margin:0 4px}
+
+/* ---------- Info-Popover ---------- */
+.pop{position:fixed;z-index:400;width:min(340px,calc(100vw - 24px));background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:0 12px 40px rgba(17,24,39,.18);padding:14px 16px;font-size:13.5px;color:#374151}
+.pop h4{font-size:14px;color:var(--text);margin-bottom:6px}
+.pop p{margin:0 0 8px}.pop p:last-child{margin:0}
+.pop ul{margin:0 0 8px;padding-left:18px}.pop li{margin:3px 0}
+.pop code{background:var(--fill);border-radius:5px;padding:1px 5px;font-size:12.5px}
 
 /* ---------- Modale Fenster ---------- */
-.modal{position:fixed;inset:0;z-index:100;background:rgba(28,25,23,.42);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center;padding:max(14px,env(safe-area-inset-top)) 14px max(14px,env(safe-area-inset-bottom))}
-.modal-card{background:#FBFAF7;border:1px solid var(--line);border-radius:20px;box-shadow:0 24px 80px rgba(0,0,0,.28);width:min(560px,100%);max-height:100%;display:flex;flex-direction:column;overflow:hidden}
+.modal{position:fixed;inset:0;z-index:100;background:rgba(17,24,39,.4);display:flex;align-items:center;justify-content:center;padding:max(14px,env(safe-area-inset-top)) 14px max(14px,env(safe-area-inset-bottom))}
+.modal-card{background:var(--bg);border:1px solid var(--line);border-radius:18px;box-shadow:0 24px 80px rgba(17,24,39,.28);width:min(560px,100%);max-height:100%;display:flex;flex-direction:column;overflow:hidden}
 .modal-card.wide{width:min(1080px,100%);height:min(820px,100%)}
 .modal-card.mid{width:min(680px,100%)}
-.modal-head{display:flex;align-items:center;gap:10px;padding:12px 14px 12px 20px;border-bottom:1px solid var(--line);background:#fff}
+.modal-head{display:flex;align-items:center;gap:10px;padding:10px 12px 10px 20px;border-bottom:1px solid var(--line);background:#fff}
 .modal-head h2{font-size:17px;font-weight:700;flex:1;min-width:0}
-.modal-head h2 small{font-weight:600;color:var(--muted);font-size:13px;margin-left:6px}
+.modal-head h2 small{font-weight:500;color:var(--muted);font-size:13.5px;margin-left:6px}
 .modal-body{padding:16px 20px;overflow-y:auto;-webkit-overflow-scrolling:touch;flex:1 1 auto;min-height:0}
-.modal-body h4{margin:16px 0 6px;font-size:14px}
+.modal-body h4{margin:18px 0 6px;font-size:14.5px}
 .modal-body h4:first-child{margin-top:0}
-.modal-body p,.modal-body li{font-size:14px;color:#3F3A36}
+.modal-body p,.modal-body li{font-size:14px;color:#374151}
 .modal-body ul,.modal-body ol{margin:6px 0;padding-left:20px}
 .modal-body li{margin:3px 0}
-.modal-body code{background:#F1EEE8;border-radius:5px;padding:1px 5px;font-size:12.5px}
+.modal-body code{background:var(--fill);border-radius:5px;padding:1px 5px;font-size:12.5px}
 .modal-foot{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:12px 14px;border-top:1px solid var(--line);background:#fff}
 
 /* Zuschneiden */
-.crop-stage{flex:1 1 auto;min-height:0;background:#2B2826;display:grid;place-items:center;overflow:hidden;position:relative;touch-action:none;-webkit-user-select:none;user-select:none}
+.crop-stage{flex:1 1 auto;min-height:0;background:#1F2937;display:grid;place-items:center;overflow:hidden;position:relative;touch-action:none;-webkit-user-select:none;user-select:none}
 .crop-wrap{position:relative;overflow:hidden;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 .crop-wrap img{display:block;width:100%;height:100%;pointer-events:none;-webkit-user-drag:none;-webkit-user-select:none;user-select:none}
-.crop-rect{position:absolute;border:2px solid #fff;box-shadow:0 0 0 9999px rgba(20,18,16,.58);touch-action:none;cursor:move}
+.crop-rect{position:absolute;border:2px solid #fff;box-shadow:0 0 0 9999px rgba(17,24,39,.6);touch-action:none;cursor:move}
 .crop-rect::before{content:"";position:absolute;inset:0;background:linear-gradient(#fff6,#fff6) 33.33% 0/1px 100% no-repeat,linear-gradient(#fff6,#fff6) 66.66% 0/1px 100% no-repeat,linear-gradient(#fff6,#fff6) 0 33.33%/100% 1px no-repeat,linear-gradient(#fff6,#fff6) 0 66.66%/100% 1px no-repeat;pointer-events:none}
 .ch{position:absolute;width:48px;height:48px;margin:-24px 0 0 -24px;touch-action:none;display:grid;place-items:center;z-index:2}
 .ch::after{content:"";width:28px;height:28px;border-radius:50%;background:#fff;border:3px solid var(--blue);box-shadow:0 2px 8px rgba(0,0,0,.35)}
@@ -162,80 +190,77 @@ textarea:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px rgba(3
 .ch[data-h=sw]{left:0;top:100%;cursor:nesw-resize}.ch[data-h=s]{left:50%;top:100%;cursor:ns-resize}.ch[data-h=se]{left:100%;top:100%;cursor:nwse-resize}
 
 /* Zeichenfeld */
-.draw-wrap{display:flex;gap:18px;align-items:flex-start;justify-content:center;flex-wrap:wrap}
-.draw-pad{position:relative;width:320px;height:320px;flex:none;border-radius:14px;background:#fff;border:1px solid var(--line);box-shadow:inset 0 1px 4px rgba(0,0,0,.05);touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;overflow:hidden}
+.draw-wrap{display:flex;gap:20px;align-items:flex-start;justify-content:center;flex-wrap:wrap}
+.draw-pad{position:relative;width:320px;height:320px;flex:none;border-radius:14px;background:#fff;border:1px solid var(--line-2);touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;overflow:hidden}
 .draw-pad canvas{position:absolute;inset:0;width:320px;height:320px;touch-action:none;-webkit-user-select:none;user-select:none}
 .draw-side{flex:1 1 200px;min-width:200px;max-width:260px;display:flex;flex-direction:column;gap:8px}
-.bigchar{font-size:54px;font-weight:300;line-height:1;text-align:center;padding:10px;border:1px dashed var(--line);border-radius:14px;background:#fff}
-.legend{font-size:12.5px;color:var(--muted);display:grid;grid-template-columns:auto 1fr;gap:3px 8px;align-items:center}
+.bigchar{font-size:54px;font-weight:300;line-height:1;text-align:center;padding:10px;border:1px solid var(--line);border-radius:14px;background:#fff}
+.legend{font-size:13px;color:var(--muted);display:grid;grid-template-columns:auto 1fr;gap:3px 8px;align-items:center}
 .legend i{display:block;width:22px;height:0;border-top:2px solid #C9D2E3}
 .legend i.base{border-color:#DC2626}.legend i.dash{border-top-style:dashed}
 
-/* KI-Vergleich */
+/* Vergleichsansichten */
 .cmp{display:grid;grid-template-columns:1fr 1fr;gap:12px;flex:1 1 auto;min-height:0;padding:14px 16px}
 .cmp>div{display:flex;flex-direction:column;min-height:0}
-.cmp h4{font-size:13px;color:var(--muted);margin:0 0 6px;display:flex;justify-content:space-between}
+.cmp h4{font-size:13px;color:var(--muted);margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;min-height:24px}
 .cmp textarea{flex:1 1 auto;min-height:160px;resize:none}
-.cmp textarea[readonly]{background:#F6F4EF}
+.cmp textarea[readonly]{background:var(--fill)}
 .cmp-warn{margin:12px 16px 0}
 
-.toast{position:fixed;left:50%;bottom:calc(86px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:300;background:#1C1917;color:#fff;border-radius:12px;padding:11px 16px;font-size:14px;box-shadow:0 10px 30px rgba(0,0,0,.3);max-width:min(560px,92vw);text-align:center}
+.toast{position:fixed;left:50%;bottom:calc(88px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:300;background:#111827;color:#fff;border-radius:12px;padding:11px 16px;font-size:14px;box-shadow:0 10px 30px rgba(0,0,0,.3);max-width:min(560px,92vw);text-align:center}
 .spin{width:18px;height:18px;border-radius:50%;border:2.5px solid rgba(255,255,255,.4);border-top-color:#fff;animation:sp .8s linear infinite;flex:none}
 .spin.dark{border-color:rgba(30,58,138,.25);border-top-color:var(--blue)}
 @keyframes sp{to{transform:rotate(360deg)}}
 
-/* ---------- iPad Hochformat / schmale Fenster: Tab-Wechsel ---------- */
-@media (max-width:1090px){
-  .brand .name{display:none}
+/* ---------- iPad Hochformat / schmale Fenster ---------- */
+@media (max-width:1000px){
   .seg.steps button .t-long{display:none}
-  .cta .long{display:none}.cta .short{display:inline}
+  .cta{padding:0 14px}
 }
-@media (min-width:1091px){.seg.steps button .t-short{display:none}}
+@media (min-width:1001px){.seg.steps button .t-short{display:none}}
 @media (max-width:900px){
   .subtabs{display:block}
   main{display:block;position:relative}
-  .panel{position:absolute;inset:0;flex:none;width:auto;padding:12px 14px calc(24px + env(safe-area-inset-bottom))}
+  .panel{position:absolute;inset:0;flex:none;width:auto;border-right:0;padding:12px 14px calc(24px + env(safe-area-inset-bottom))}
   .stage{position:absolute;inset:0}
   main[data-view=panel] .stage{visibility:hidden;pointer-events:none}
   main[data-view=stage] .panel{display:none}
-  .title-input{max-width:150px}
+  .title-input{max-width:200px}
   .topbar{gap:8px;padding:0 10px}
   .seg.steps button{padding:0 10px}
 }
 @media (max-width:640px){
+  .topbar{grid-template-columns:auto auto 1fr}
   .title-input{display:none}
   .seg.steps button .t-short{display:none}
   .cmp{grid-template-columns:1fr}
+  .tiles{grid-template-columns:repeat(5,minmax(0,1fr))}
 }
 </style>
 </head>
 <body>
 <header class="topbar">
   <div class="brand">
-    <div class="logo" aria-hidden="true">
-      <svg width="22" height="22" viewBox="0 0 32 32" fill="none"><path d="M27 4C16.5 4.6 9.2 10.6 7.6 20.2L6.4 27l2.3-1.5c9.9-1.7 17-8.300 18.300-21.500Z" fill="#fff"/><path d="M6.200 28.200 19 12.500" stroke="#1E3A8A" stroke-width="1.700" stroke-linecap="round"/><path d="M11.500 21.500l6-.8M14.800 17.300l4.800-.500" stroke="#1E3A8A" stroke-width="1.300" stroke-linecap="round"/></svg>
+    <div class="logo" aria-label="Tintenwerk" role="img">
+      <svg width="22" height="22" viewBox="0 0 32 32" fill="none"><path d="M27 4C16.5 4.6 9.2 10.6 7.6 20.2L6.4 27l2.3-1.5C18.6 23.8 25.7 17.2 27 4Z" fill="#fff"/><path d="M6.2 28.2 19 12.5" stroke="#1E3A8A" stroke-width="1.7" stroke-linecap="round"/><path d="M11.5 21.5l6-.8M14.8 17.3l4.8-.5" stroke="#1E3A8A" stroke-width="1.3" stroke-linecap="round"/></svg>
     </div>
-    <span class="name">Tintenwerk</span>
     <input class="title-input" id="noteTitle" type="text" placeholder="Titel der Notiz" aria-label="Titel der aktuellen Notiz" autocomplete="off" spellcheck="false">
   </div>
   <nav class="seg steps" id="modeSeg" aria-label="Arbeitsschritte">
-    <button data-mode="import"><span class="n">1</span><span class="t-long">Import &amp; Text</span><span class="t-short">Import</span></button>
-    <button data-mode="schrift"><span class="n">2</span><span class="t-long">Eigene Schrift</span><span class="t-short">Schrift</span></button>
-    <button data-mode="blatt"><span class="n">3</span><span class="t-long">Blatt &amp; Export</span><span class="t-short">Blatt</span></button>
+    <button data-mode="import"><span class="n">1</span><span class="t-long">Text &amp; KI</span><span class="t-short">Text</span></button>
+    <button data-mode="schrift"><span class="n">2</span><span class="t-long">Handschrift</span><span class="t-short">Schrift</span></button>
+    <button data-mode="blatt"><span class="n">3</span><span class="t-long">Papier &amp; Export</span><span class="t-short">Papier</span></button>
   </nav>
   <div class="actions">
-    <button class="icon-btn" id="btnUndo" title="Letzten Import rückgängig machen" aria-label="Letzten Import rückgängig machen" disabled>
+    <button class="icon-btn" id="btnUndo" title="Rückgängig" aria-label="Letzte Übernahme rückgängig machen" disabled>
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></svg>
     </button>
-    <button class="icon-btn" id="btnNew" title="Neue leere Notiz" aria-label="Neue leere Notiz">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M12 12v6M9 15h6"/></svg>
-    </button>
     <button class="icon-btn" id="btnSettings" title="Datenschutz &amp; Speicher" aria-label="Datenschutz und Speicher">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.700 1.700 0 0 0 .3 1.800l.1.1a2 2 0 1 1-2.800 2.800l-.1-.1a1.700 1.700 0 0 0-1.800-.3 1.700 1.700 0 0 0-1 1.500V21a2 2 0 1 1-4 0v-.1a1.700 1.700 0 0 0-1.100-1.500 1.700 1.700 0 0 0-1.800.3l-.1.1a2 2 0 1 1-2.800-2.800l.1-.1a1.700 1.700 0 0 0 .3-1.800 1.700 1.700 0 0 0-1.500-1H3a2 2 0 1 1 0-4h.1a1.700 1.700 0 0 0 1.500-1.100 1.700 1.700 0 0 0-.3-1.800l-.1-.1a2 2 0 1 1 2.800-2.800l.1.1a1.700 1.700 0 0 0 1.800.3h.1a1.700 1.700 0 0 0 1-1.500V3a2 2 0 1 1 4 0v.1a1.700 1.700 0 0 0 1 1.500 1.700 1.700 0 0 0 1.800-.3l.1-.1a2 2 0 1 1 2.800 2.800l-.1.1a1.700 1.700 0 0 0-.3 1.800v.1a1.700 1.700 0 0 0 1.500 1H21a2 2 0 1 1 0 4h-.1a1.700 1.700 0 0 0-1.500 1z"/></svg>
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
     </button>
     <button class="btn btn-primary cta" id="btnExport">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.200" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3M7 8l5-5 5 5M5 14v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5"/></svg>
-      <span class="long">Exportieren (.goodnotes / PDF)</span><span class="short">Exportieren</span>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3M7 8l5-5 5 5M5 14v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5"/></svg>
+      Exportieren
     </button>
   </div>
 </header>
@@ -250,175 +275,176 @@ textarea:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px rgba(3
 <main id="main" data-view="panel">
   <aside class="panel" id="panel">
 
-    <!-- ============ 1. Import & Text ============ -->
+    <!-- ============ 1. Text & KI ============ -->
     <section data-panel="import">
       <div class="card">
-        <h3>Screenshots importieren</h3>
-        <p class="sub">Mehrere Bilder aus Fotomediathek oder Dateien wählen, zuschneiden und lokal auf dem iPad in Text umwandeln.</p>
+        <div class="card-h"><h3>Notiztext</h3><span class="badge off" id="sampleBadge" hidden>Beispiel</span><span class="grow"></span>
+          <button class="btn btn-ghost btn-sm" id="btnNew" aria-label="Neue leere Notiz">Neue Notiz</button>
+          <button class="info" data-info="text" aria-label="Info zur Formatierung">ⓘ</button></div>
+        <textarea id="editor" spellcheck="false" aria-label="Notiztext" placeholder="Text eingeben, einfügen oder per Screenshot importieren …"></textarea>
+        <p class="hint" id="editorStats" style="margin-top:8px"></p>
         <input type="file" id="fileInput" accept="image/*" multiple hidden>
-        <button class="btn btn-primary btn-block" id="btnPick">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="1.800"/><path d="m4 18 5-5 4 4 3-3 4 4"/></svg>
-          Screenshots auswählen
+        <button class="btn btn-block" id="btnPick" style="margin-top:12px">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="1.8"/><path d="m4 18 5-5 4 4 3-3 4 4"/></svg>
+          Screenshots importieren
+          <span class="grow"></span>
         </button>
         <div id="ocrStatus" hidden style="margin-top:12px">
-          <div class="row" style="margin-bottom:6px"><span class="spin dark" id="ocrSpin"></span><span id="ocrMsg" class="hint grow">Vorbereitung …</span><button class="btn btn-ghost" id="ocrCancel">Abbrechen</button></div>
-          <div class="progress"><i id="ocrBar"></i></div>
+          <div class="row" style="margin-bottom:8px"><span class="spin dark" id="ocrSpin"></span><span id="ocrMsg" class="hint grow">Vorbereitung …</span><button class="btn btn-ghost btn-sm" id="ocrCancel">Abbrechen</button></div>
+          <div class="progress thin"><i id="ocrBar"></i></div>
         </div>
-        <p class="hint" style="margin-top:10px">Die Texterkennung (Tesseract.js, Deutsch + Englisch) läuft vollständig im Browser. Formeln und komplexe Tabellen werden nur als einfacher Text erkannt.</p>
       </div>
 
       <div class="card stage-card" id="stagingCard" hidden>
-        <h3>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.200" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-          Erkannten Text prüfen &amp; korrigieren
-        </h3>
-        <p class="sub" id="stagingInfo">Dein aktueller Entwurf bleibt unverändert, bis du unten auf „Übernehmen“ tippst.</p>
+        <div class="card-h"><h3>Erkannten Text prüfen</h3><span class="grow"></span><button class="info" data-info="ocr" aria-label="Info zur Texterkennung">ⓘ</button></div>
+        <p class="one" id="stagingInfo">Dein Entwurf bleibt unverändert, bis du „Übernehmen“ tippst.</p>
         <textarea id="stagingText" spellcheck="false" aria-label="Erkannter OCR-Text"></textarea>
-        <div class="stack" style="margin-top:10px">
-          <label class="radio on" id="optReplaceL"><input type="radio" name="takeMode" value="replace" checked><span><b>Als neue Notiz übernehmen</b> (ersetzt aktuellen Entwurf)<small>Der Titel wird aus der ersten sinnvollen Zeile erzeugt.</small></span></label>
+        <div class="stack" style="margin-top:12px">
+          <label class="radio on" id="optReplaceL"><input type="radio" name="takeMode" value="replace" checked><span><b>Als neue Notiz übernehmen</b><small>Ersetzt den aktuellen Entwurf, Titel aus der ersten Zeile</small></span></label>
           <label class="radio" id="optAppendL"><input type="radio" name="takeMode" value="append"><span><b>An aktuelle Notiz anhängen</b><small id="appendHint">Fügt den Text mit einem Absatzumbruch unten an.</small></span></label>
         </div>
-        <div class="row" style="margin-top:10px">
+        <div class="row" style="margin-top:12px">
           <button class="btn btn-ghost" id="btnDiscard">Verwerfen</button>
           <button class="btn" id="btnSolveStaging">Aufgaben lösen</button>
-          <button class="btn btn-amber grow" id="btnTake">Übernehmen</button>
+          <button class="btn btn-primary grow" id="btnTake">Übernehmen</button>
         </div>
       </div>
 
-      <div class="card">
-        <h3>Notiztext <span class="badge off" id="sampleBadge" hidden>Beispielnotiz</span></h3>
-        <p class="sub"><b>#</b> Überschrift · <b>-</b> Aufzählung · Leerzeile = Absatz · <b>**fett**</b></p>
-        <textarea id="editor" spellcheck="false" aria-label="Notiztext" placeholder="Text hier eingeben, einfügen oder per Screenshot importieren …"></textarea>
-        <div class="row" style="margin-top:6px"><span class="hint grow" id="editorStats"></span></div>
-      </div>
-
-      <div class="card">
-        <h3>Tizian <span class="hint" style="font-weight:600">· lokale KI</span></h3>
-        <div class="row" style="margin:6px 0 10px"><span class="badge off" id="gpuBadge"><i></i>WebGPU wird geprüft …</span></div>
-        <p class="sub">Tizian ist die lokale KI von Tintenwerk und läuft direkt auf dem Gerät. Sie formuliert Entwürfe flüssiger und persönlicher und löst Aufgaben. Fakten, Zahlen, Namen und Fachbegriffe sollen erhalten bleiben; ein Fakten-Wächter prüft Zahlen, Namen und Fachbegriffe. Die KI ist optional: Editor, Handschrift und Export funktionieren auch ohne sie.</p>
-        <label class="lbl" for="aiModel" style="margin-top:0">Modell</label>
-        <select id="aiModel" class="field" aria-label="KI-Modell"></select>
-        <p class="hint" style="margin:6px 0 10px">„Besser“ löst Aufgaben deutlich zuverlässiger, braucht aber mehr Speicher und Download. Größenangaben sind geschätzt.</p>
-        <button class="btn btn-block" id="btnLoadModel" disabled>Tizian laden</button>
-        <div id="modelProg" hidden style="margin-top:10px">
-          <div class="progress amber"><i id="modelBar"></i></div>
-          <p class="hint" id="modelMsg" style="margin-top:6px">Download startet …</p>
+      <div class="card" id="aiCard">
+        <div class="card-h"><h3>Tizian</h3><span class="badge off" id="gpuBadge"><i></i>wird geprüft</span><span class="grow"></span><button class="info" data-info="ki" aria-label="Info zur lokalen KI">ⓘ</button></div>
+        <p class="one">Lokale KI: macht deinen Text flüssiger, direkt auf dem iPad.</p>
+        <button class="btn btn-primary btn-block" id="btnRewrite" disabled>Text jetzt glätten</button>
+        <div id="modelProg" hidden style="margin-top:12px">
+          <div class="progress thin"><i id="modelBar"></i></div>
+          <div class="row" style="margin-top:6px"><p class="hint grow" id="modelMsg">Download startet …</p><button class="btn btn-ghost btn-sm" id="btnCancelModel" hidden>Abbrechen</button></div>
         </div>
-        <button class="btn btn-block" id="btnCancelModel" hidden style="margin-top:8px">Laden abbrechen</button>
-        <details id="aiHelp" style="margin-top:10px">
-          <summary class="hint" style="min-height:44px;display:flex;align-items:center;cursor:pointer">Probleme beim Laden?</summary>
-          <label class="switch"><input type="checkbox" id="aiNoCache"><span>Ohne Browser-Cache laden (falls es nach dem Download hängt)</span></label>
-          <label class="switch"><input type="checkbox" id="aiCompat"><span>Kompatibilitätsmodus: q4 statt q4f16 (größerer Download)</span></label>
-          <pre id="aiLogText" class="hint" style="white-space:pre-wrap;word-break:break-word;background:#F6F4EF;border-radius:10px;padding:8px;margin:6px 0 0;font-size:11.5px;min-height:20px"></pre>
+        <div class="warnbox" id="aiError" hidden style="margin-top:12px"></div>
+        <details class="fold" id="aiHelp">
+          <summary>Modell &amp; Optionen</summary>
+          <div class="fold-body">
+            <label class="lbl" for="aiModel">Modell</label>
+            <select id="aiModel" class="field" aria-label="KI-Modell"></select>
+            <button class="btn btn-block" id="btnLoadModel" disabled style="margin-top:10px">Tizian laden</button>
+            <label class="switch" style="margin-top:6px"><input type="checkbox" id="aiNoCache"><span>Ohne Browser-Cache laden</span></label>
+            <label class="switch"><input type="checkbox" id="aiCompat"><span>Kompatibilitätsmodus (q4)</span></label>
+            <pre id="aiLogText" class="log"></pre>
+          </div>
         </details>
-        <div class="warnbox" id="aiError" hidden style="margin-top:10px"></div>
-        <button class="btn btn-amber btn-block" id="btnRewrite" hidden style="margin-top:10px">Tizian: Entwurf natürlicher formulieren</button>
-        <p class="hint" style="margin-top:8px">Kein automatischer Download. Tintenwerk verspricht keine Umgehung von KI-Detektoren – es geht um bessere, eigene Lernnotizen.</p>
       </div>
 
       <div class="card" id="solveCard">
-        <h3>Tizian löst Aufgaben <span class="hint" style="font-weight:600">· Hausaufgaben-Helfer</span></h3>
-        <p class="sub">Buchseite fotografieren oder als Screenshot senden: Tintenwerk erkennt die Aufgaben, Tizian löst sie lokal auf dem Gerät und schreibt die Lösungen als Handschrift aufs Blatt. Einfache Rechenzeilen (z. B. <b>345 + 678 =</b>) rechnet ein exakter Taschenrechner statt Tizian.</p>
-        <div class="row" style="align-items:flex-end">
-          <div class="grow"><label class="lbl" for="stuName" style="margin-top:0">Name (optional)</label><input class="field" id="stuName" type="text" maxlength="40" autocomplete="off" spellcheck="false" placeholder="für die Überschrift"></div>
-          <div style="width:110px"><label class="lbl" for="stuGrade" style="margin-top:0">Klasse</label><select class="field" id="stuGrade"></select></div>
-        </div>
-        <label class="switch"><input type="checkbox" id="stuWork"><span>Rechenweg zeigen</span></label>
+        <div class="card-h"><h3>Aufgaben lösen</h3><span class="grow"></span><button class="info" data-info="solve" aria-label="Info zum Aufgaben-Löser">ⓘ</button></div>
+        <p class="one" id="solveHint">Buchseite senden, Tizian schreibt die Lösungen aufs Blatt.</p>
         <input type="file" id="solveFile" accept="image/*" multiple hidden>
-        <button class="btn btn-amber btn-block" id="btnSolvePages">Buchseite(n) senden &amp; lösen</button>
-        <button class="btn btn-block" id="btnSolveEditor" style="margin-top:8px">Aufgaben aus dem Notiztext lösen</button>
-        <p class="hint" id="solveHint" style="margin-top:8px">Zuerst oben Tizian laden.</p>
-        <p class="hint" style="margin-top:6px">Grenzen: Texterkennung statt Bildverständnis – Zeichnungen, Diagramme, handschriftliche Einträge und Formeln werden nicht verstanden. Tizian ist ein kleines lokales Modell und macht Fehler, besonders in Mathe. Bitte Lösungen prüfen, bevor sie abgegeben werden.</p>
+        <button class="btn btn-primary btn-block" id="btnSolvePages" disabled>Buchseite senden &amp; lösen</button>
+        <button class="btn btn-block" id="btnSolveEditor" disabled style="margin-top:8px">Aufgaben aus dem Notiztext lösen</button>
+        <details class="fold">
+          <summary>Einstellungen</summary>
+          <div class="fold-body">
+            <div class="row" style="align-items:flex-end;flex-wrap:nowrap">
+              <div class="grow"><label class="lbl" for="stuName">Name (optional)</label><input class="field" id="stuName" type="text" maxlength="40" autocomplete="off" spellcheck="false" placeholder="für die Überschrift"></div>
+              <div style="width:104px;flex:none"><label class="lbl" for="stuGrade">Klasse</label><select class="field" id="stuGrade"></select></div>
+            </div>
+            <label class="switch" style="margin-top:6px"><input type="checkbox" id="stuWork"><span>Rechenweg zeigen</span></label>
+          </div>
+        </details>
       </div>
     </section>
 
-    <!-- ============ 2. Eigene Schrift ============ -->
+    <!-- ============ 2. Handschrift ============ -->
     <section data-panel="schrift" hidden>
       <div class="card">
-        <h3>Zeichenstudio</h3>
-        <p class="sub">Tippe ein Zeichen an und schreibe es mit dem Apple Pencil. Gespeichert werden echte Stiftpfade – relativ zur Grundlinie.</p>
-        <div class="row"><div class="progress grow"><i id="ownBar" style="background:var(--ok)"></i></div><span class="hint" id="ownCount">0 von 85</span></div>
-        <button class="btn btn-primary btn-block" id="btnDrawText" style="margin-top:10px">Fehlende Zeichen aus meinem Text</button>
-        <div class="row" style="margin-top:8px">
-          <button class="btn grow" id="btnDrawNext">Nächstes fehlendes Zeichen</button>
-          <button class="btn grow" id="btnUseOwn">Als Schriftstil verwenden</button>
-        </div>
-        <div id="tileGroups"></div>
-      </div>
-      <div class="card">
-        <h3>Sicherung</h3>
-        <p class="sub">iPadOS kann lokale Browserdaten nach längerer Inaktivität löschen. Sichere deine Handschrift als JSON-Datei.</p>
-        <div class="stack">
-          <button class="btn btn-block" id="btnOwnExport">Handschrift als JSON herunterladen</button>
-          <button class="btn btn-block" id="btnOwnImport">JSON-Sicherung importieren</button>
-          <input type="file" id="ownFile" accept="application/json,.json" hidden>
-        </div>
-      </div>
-    </section>
-
-    <!-- ============ 3. Blatt & Export ============ -->
-    <section data-panel="blatt" hidden>
-      <div class="card">
-        <h3>Handschrift</h3>
-        <span class="lbl">Schriftstil</span>
+        <div class="card-h"><h3>Schriftstil</h3><span class="grow"></span><button class="info" data-info="style" aria-label="Info zu den Schriftstilen">ⓘ</button></div>
         <div class="stack" id="styleOpts">
-          <label class="radio"><input type="radio" name="style" value="klar"><span><b>Klar &amp; ordentlich</b><small>Saubere, gut lesbare Vektor-Druckschrift</small></span></label>
-          <label class="radio"><input type="radio" name="style" value="locker"><span><b>Locker &amp; geschwungen</b><small>Leichte Neigung, natürliche Mikro-Variation</small></span></label>
+          <label class="radio"><input type="radio" name="style" value="klar"><span><b>Klar &amp; ordentlich</b><small>Saubere, gut lesbare Druckschrift</small></span></label>
+          <label class="radio"><input type="radio" name="style" value="locker"><span><b>Locker &amp; geschwungen</b><small>Leicht geneigt, natürlich variiert</small></span></label>
           <label class="radio"><input type="radio" name="style" value="eigen"><span><b>Meine eigene Handschrift</b><small id="ownStyleHint">Noch keine Zeichen gezeichnet</small></span></label>
         </div>
         <span class="lbl">Schriftgröße</span>
         <div class="seg fill small" data-setting="size"><button data-v="fein">Fein</button><button data-v="mittel">Mittel</button><button data-v="gross">Groß</button></div>
         <span class="lbl">Tintenfarbe <span id="inkName" style="font-weight:500"></span></span>
         <div class="swatches" id="inkSwatches"></div>
-        <label class="switch" style="margin-top:6px"><input type="checkbox" id="markFallback"><span>Ersatzzeichen der Standardschrift in der Vorschau markieren</span></label>
       </div>
 
-      <div id="warnArea" class="stack"></div>
+      <div class="warn-area stack"></div>
 
+      <div class="card" id="studioCard" hidden>
+        <div class="card-h"><h3>Zeichenstudio</h3><span class="badge off" id="ownCount">0 von 85</span><span class="grow"></span><button class="info" data-info="studio" aria-label="Info zum Zeichenstudio">ⓘ</button></div>
+        <div class="progress thin"><i id="ownBar" style="background:var(--ok)"></i></div>
+        <div class="stack" style="margin-top:12px" id="studioActions">
+          <button class="btn btn-primary btn-block" id="btnDrawText">Fehlende Zeichen aus meinem Text</button>
+          <button class="btn btn-block" id="btnDrawNext">Nächstes fehlendes Zeichen</button>
+        </div>
+        <div id="tileGroups"></div>
+        <label class="switch" style="margin-top:12px"><input type="checkbox" id="markFallback"><span>Ersatzzeichen in der Vorschau markieren</span></label>
+        <details class="fold">
+          <summary>Sicherung</summary>
+          <div class="fold-body stack">
+            <button class="btn btn-block" id="btnOwnExport">Handschrift als JSON herunterladen</button>
+            <button class="btn btn-block" id="btnOwnImport">JSON-Sicherung importieren</button>
+            <input type="file" id="ownFile" accept="application/json,.json" hidden>
+          </div>
+        </details>
+      </div>
+    </section>
+
+    <!-- ============ 3. Papier & Export ============ -->
+    <section data-panel="blatt" hidden>
       <div class="card">
-        <h3>Goodnotes-Blatt</h3>
-        <span class="lbl">Papiertyp</span>
+        <div class="card-h"><h3>Blattvorlage</h3><span class="grow"></span><button class="info" data-info="paper" aria-label="Info zur Blattvorlage">ⓘ</button></div>
+        <span class="lbl">Lineatur</span>
         <div class="seg fill small" data-setting="paper"><button data-v="liniert">Liniert</button><button data-v="kariert">Kariert</button><button data-v="blanko">Blanko</button></div>
         <span class="lbl">Papierfarbe</span>
-        <div class="seg fill small" data-setting="paperColor"><button data-v="weiss">Klassisch Weiß</button><button data-v="creme">Goodnotes-Creme</button></div>
-        <span class="lbl">Linien-/Kästchenabstand</span>
-        <div class="seg fill small" data-setting="spacing"><button data-v="ref">Referenz 17,5 pt</button><button data-v="5">5 mm</button><button data-v="6">6 mm</button><button data-v="7">7 mm</button></div>
-        <span class="lbl">Schreibränder links/rechts</span>
+        <div class="seg fill small" data-setting="paperColor"><button data-v="weiss">Weiß</button><button data-v="creme">Creme</button></div>
+        <span class="lbl">Linienabstand</span>
+        <div class="seg fill small" data-setting="spacing"><button data-v="ref">17,5 pt</button><button data-v="5">5 mm</button><button data-v="6">6 mm</button><button data-v="7">7 mm</button></div>
+        <span class="lbl">Ränder links/rechts</span>
         <div class="seg fill small" data-setting="margin"><button data-v="8">8 mm</button><button data-v="12">12 mm</button><button data-v="16">16 mm</button></div>
-        <p class="hint" style="margin-top:10px" id="gridInfo"></p>
       </div>
 
-      <div class="card">
-        <h3>System- &amp; Export-Selbsttest</h3>
-        <p class="sub">Erzeugt die Exportdatei probeweise im Speicher, liest sie wieder ein und prüft UUID-Kopplung, Maße, Grundlinien und Ränder.</p>
-        <button class="btn btn-block" id="btnSelfTest">Selbsttest ausführen</button>
-        <ul class="checks" id="selfTestOut"></ul>
-      </div>
+      <div class="warn-area stack"></div>
 
       <div class="card">
-        <h3>Export</h3>
+        <div class="card-h"><h3>Export</h3><span class="badge off" id="statsChip"></span><span class="grow"></span><button class="info" data-info="export" aria-label="Info zum Export">ⓘ</button></div>
         <div class="stack">
           <button class="btn btn-primary btn-block" id="btnExportGn">Als .goodnotes exportieren</button>
-          <button class="btn btn-block" id="btnExportPdf">Als Standard-PDF exportieren</button>
+          <button class="btn btn-block" id="btnExportPdf">Als PDF exportieren</button>
         </div>
-        <p class="hint" style="margin-top:10px">Das .goodnotes-Format basiert auf der Analyse der untersuchten Referenzdatei. Es ist keine offizielle Spezifikation und nicht für alle künftigen Goodnotes-Versionen garantiert.</p>
+        <details class="fold">
+          <summary>Selbsttest</summary>
+          <div class="fold-body">
+            <button class="btn btn-block" id="btnSelfTest">Selbsttest ausführen</button>
+            <ul class="checks" id="selfTestOut"></ul>
+          </div>
+        </details>
       </div>
     </section>
   </aside>
 
   <section class="stage" id="stage">
-    <div class="stage-top">
-      <div class="seg small" id="zoomSeg" title="Mit zwei Fingern zoomen"><button data-zoom="fit" class="on">Anpassen</button><button data-zoom="1">100 %</button><button data-zoom="1.250">125 %</button></div>
-      <span class="chip glass" id="statsChip"></span>
-    </div>
     <div class="sheet-scroll" id="sheetScroll"><div class="sheet" id="sheet"><canvas id="sheetCanvas" aria-label="Vorschau des Goodnotes-Blattes"></canvas></div></div>
-    <div class="pager glass">
-      <button class="icon-btn" id="pgPrev" aria-label="Vorherige Seite"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.400" stroke-linecap="round" stroke-linejoin="round"><path d="m15 5-7 7 7 7"/></svg></button>
-      <span id="pgLabel">Seite 1 von 1</span>
-      <button class="icon-btn" id="pgNext" aria-label="Nächste Seite"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.400" stroke-linecap="round" stroke-linejoin="round"><path d="m9 5 7 7-7 7"/></svg></button>
+    <div class="pill" role="toolbar" aria-label="Zoom und Seiten">
+      <button class="icon-btn" id="zoomOut" aria-label="Verkleinern"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M5 12h14"/></svg></button>
+      <button class="lab" id="zoomLabel" aria-label="Zoom: tippen zum Anpassen">Anpassen</button>
+      <button class="icon-btn" id="zoomIn" aria-label="Vergrößern"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
+      <span class="sep"></span>
+      <button class="icon-btn" id="pgPrev" aria-label="Vorherige Seite"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m15 5-7 7 7 7"/></svg></button>
+      <span class="lab" id="pgLabel">1 / 1</span>
+      <button class="icon-btn" id="pgNext" aria-label="Nächste Seite"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9 5 7 7-7 7"/></svg></button>
     </div>
   </section>
 </main>
+
+<!-- ============ Info-Popover (Progressive Disclosure) ============ -->
+<div class="pop" id="pop" hidden role="dialog"></div>
+<template id="info-text"><h4>Formatierung</h4><ul><li><code># Titel</code>, <code>## Abschnitt</code> – Überschriften</li><li><code>- Punkt</code> oder <code>1. Punkt</code> – Listen</li><li>Leerzeile – neuer Absatz</li><li><code>**fett**</code> – kräftiger Strich</li><li><code>a | b | c</code> – Tabellenzeile</li><li><code>x^2</code> oder <code>x2</code> wird zu x²</li></ul><label class="switch"><input type="checkbox" data-opt="autoSup"><span>Hochzahlen automatisch setzen</span></label><p>Der Text wird automatisch lokal gespeichert.</p></template>
+<template id="info-ocr"><h4>Texterkennung</h4><p>Läuft vollständig im Browser mit Tesseract.js (Deutsch + Englisch). Es wird nur der zugeschnittene Ausschnitt verarbeitet.</p><p>Formeln und komplexe Tabellen werden nur als einfacher Text erkannt – bitte prüfen.</p></template>
+<template id="info-ki"><h4>Tizian – lokale KI</h4><p id="gpuDetail"></p><ul><li>Läuft über WebGPU auf dem Gerät, Texte verlassen das iPad nicht.</li><li>Das Modell wird erst nach deinem Tipp geladen (kein automatischer Download).</li><li>Ein Fakten-Wächter vergleicht Zahlen, Namen und Fachbegriffe mit dem Original.</li><li>Der Entwurf ändert sich erst mit „Tizians Fassung übernehmen“.</li></ul><p>Tintenwerk verspricht keine Umgehung von KI-Detektoren – es geht um bessere, eigene Notizen. Editor, Handschrift und Export funktionieren auch ohne KI.</p></template>
+<template id="info-solve"><h4>Aufgaben lösen</h4><p>Buchseite fotografieren oder Screenshot senden → Zuschnitt → Texterkennung → Tizian löst jede Aufgabe. Reine Rechenzeilen wie <code>345 + 678 =</code> rechnet ein exakter Rechner.</p><p><b>Grenzen:</b> nur Text, kein Bildverständnis (Zeichnungen, Diagramme, Formeln). Kleine lokale Modelle machen Fehler, besonders in Mathe. Bitte Lösungen prüfen.</p></template>
+<template id="info-style"><h4>Schriftstile</h4><p>Alle Stile bestehen aus echten Vektor-Stiftpfaden. In Goodnotes lässt sich die Schrift mit Lasso und Radierer bearbeiten.</p><p>Bei „Meine eigene Handschrift“ werden fehlende Zeichen durch die Standardschrift ergänzt.</p></template>
+<template id="info-studio"><h4>Zeichenstudio</h4><p>Zeichen antippen und mit dem Apple Pencil schreiben. Gespeichert werden Stiftpfade mit Druck, relativ zur Grundlinie.</p><p>iPadOS kann lokale Browserdaten nach längerer Inaktivität löschen – sichere deine Handschrift unter „Sicherung“ als JSON.</p></template>
+<template id="info-paper"><h4>Blattvorlage</h4><p id="gridInfo"></p><p>Jede Zeile sitzt exakt auf einer Rasterlinie. Ist die Schrift größer als der Linienabstand, überspringt das Layout eine Zeile.</p></template>
+<template id="info-export"><h4>Export</h4><p>Die .goodnotes-Datei enthält einzelne Vektor-Stiftstriche, kein Bild. Vorschau, PDF und .goodnotes nutzen dieselben Koordinaten.</p><p>Das Format wurde aus einer Referenzdatei abgeleitet. Es ist keine offizielle Spezifikation und nicht für alle künftigen Goodnotes-Versionen garantiert.</p><p>Der Selbsttest baut die Datei probeweise, liest sie zurück und prüft UUID-Kopplung, Maße, Grundlinien und Ränder.</p></template>
 
 <!-- ============ Zuschneiden ============ -->
 <div class="modal" id="cropModal" hidden>
@@ -833,7 +859,7 @@ const BUILTIN = { klar: new Map(), locker: new Map() };
   for (const st of ['klar', 'locker']) {
     const T = BUILTIN[st];
     for (const [u, b] of [['ä', 'a'], ['ö', 'o'], ['ü', 'u'], ['Ä', 'A'], ['Ö', 'O'], ['Ü', 'U']]) T.set(u, composeAccent(T.get(b), b, '̈'));
-    for (const [sup, d] of [['²', '2'], ['³', '3'], ['¹', '1']]) T.set(sup, normGlyph(shiftStrokes(T.get(d).s, 0, 48, 0.55)));
+    for (const [sup, d] of [['⁰', '0'], ['¹', '1'], ['²', '2'], ['³', '3'], ['⁴', '4'], ['⁵', '5'], ['⁶', '6'], ['⁷', '7'], ['⁸', '8'], ['⁹', '9'], ['⁻', '-'], ['⁺', '+']]) T.set(sup, normGlyph(shiftStrokes(T.get(d).s, 0, 48, 0.55)));
   }
 })();
 
@@ -915,7 +941,17 @@ TW.STYLES = {
   locker: { slant: 0.2, slantJ: 0.03, sizeJ: 0.05, ptJ: 1.3, track: 13.5, trackJ: 2.5, xs: 0.93, cornerR: 5, space: 29, spaceJ: 4 },
   eigen: { slant: 0, slantJ: 0, sizeJ: 0.02, ptJ: 0.3, track: 11, trackJ: 1.2, xs: 1, cornerR: 0, space: 30, spaceJ: 2 }
 };
-TW.DEFAULT_SETTINGS = { style: 'klar', size: 'mittel', ink: '#1A4B8C', paper: 'liniert', paperColor: 'weiss', spacing: 'ref', margin: 12, markFallback: true };
+TW.DEFAULT_SETTINGS = { style: 'klar', size: 'mittel', ink: '#1A4B8C', paper: 'liniert', paperColor: 'weiss', spacing: 'ref', margin: 12, markFallback: true, autoSup: true };
+
+/* Typografie: einfache Hochzahlen. "x^2", "x^-1", "10^6" immer; "x2"/"cm3" nur bei einzelnen Kleinbuchstaben und Längeneinheiten
+   (nicht bei CO2, H2O, A4, x20 oder x2,5). */
+const SUP = { 0: '⁰', 1: '¹', 2: '²', 3: '³', 4: '⁴', 5: '⁵', 6: '⁶', 7: '⁷', 8: '⁸', 9: '⁹', '-': '⁻', '+': '⁺' };
+TW.typo = function (text) {
+  return String(text || '')
+    .replace(/\^\(?([-+]?\d{1,4})\)?/g, (m, d) => d.split('').map(c => SUP[c]).join(''))
+    .replace(/(^|[^A-Za-zÄÖÜäöüß0-9^_])(mm|cm|dm|km)([23])(?![A-Za-zÄÖÜäöüß0-9]|[.,]\d)/g, (m, a, u, d) => a + u + SUP[d])
+    .replace(/(^|[^A-Za-zÄÖÜäöüß0-9^_])([a-z])([23])(?![A-Za-zÄÖÜäöüß0-9]|[.,]\d)/g, (m, a, v, d) => a + v + SUP[d]);
+};
 
 TW.hexRgb = function (hex) {
   const n = parseInt(hex.slice(1), 16);
@@ -1126,8 +1162,9 @@ TW.layout = function (note, settings, own) {
     return place;
   }
 
-  const title = (note.title || '').trim();
-  const lines = (note.text || '').replace(/\r\n?/g, '\n').split('\n').map(classifyLine);
+  const sup = settings.autoSup !== false ? TW.typo : (x => x);
+  const title = sup((note.title || '').trim());
+  const lines = sup(note.text || '').replace(/\r\n?/g, '\n').split('\n').map(classifyLine);
   /* Keine doppelte Überschrift: erste sinnvolle Zeile == Titel -> nur einmal (als Titel) setzen.
      Der Rohtext im Editor bleibt dabei unverändert. */
   let skipIdx = -1;
@@ -1867,7 +1904,7 @@ const SAMPLE = {
   text: 'Willkommen im Tintenwerk\n\n' + SAMPLE_MARK + ' Sie zeigt, wie dein Text als echte Vektor-Handschrift auf einem Goodnotes-Blatt aussieht.\n\n' +
     '# So funktioniert es\n- Screenshots importieren und Text lokal erkennen lassen\n- Text prüfen, korrigieren und auf Wunsch natürlicher formulieren\n- Schriftstil, Papier und Tinte wählen\n- Als native .goodnotes-Datei oder PDF exportieren\n\n' +
     '## Gut zu wissen\n1. Jede Zeile sitzt exakt auf der Grundlinie.\n2. Die Schrift lässt sich in Goodnotes mit Lasso und Radierer bearbeiten.\n3. Alles bleibt auf deinem iPad – 100 % lokal.\n\n' +
-    'Tippe oben auf „Neue leere Notiz“ oder importiere deinen ersten Screenshot.'
+    'Tippe auf „Neue Notiz“ oder importiere deinen ersten Screenshot.'
 };
 
 /* ---------- Speicher ---------- */
@@ -1941,8 +1978,9 @@ function setMode(mode) {
   $$('#modeSeg button').forEach(b => b.classList.toggle('on', b.dataset.mode === mode));
   $$('#panel > section').forEach(s => { s.hidden = s.dataset.panel !== mode; });
   $('#panel').scrollTop = 0;
+  closePop();
   if (mode === 'schrift') renderTiles();
-  if (mode === 'blatt') refreshBlattPanel();
+  if (mode !== 'import') refreshBlattPanel();
   setView('panel');
 }
 function setView(v) {
@@ -1972,7 +2010,7 @@ function renderPage(ctx, layout, pi, scale, mark) {
 }
 function sheetScale() {
   if (S.zoom !== 'fit') return parseFloat(S.zoom) * 96 / 72;
-  const sc = $('#sheetScroll'), w = sc.clientWidth - 48, h = sc.clientHeight - 152;
+  const sc = $('#sheetScroll'), w = sc.clientWidth - 56, h = sc.clientHeight - 124;
   return clamp(Math.min(w / TW.PAGE_W, h / TW.PAGE_H), 0.3, 4);
 }
 function drawSheet() {
@@ -1989,10 +2027,10 @@ function drawSheet() {
 function updatePager() {
   const n = S.layout.pages.length;
   S.page = clamp(S.page, 0, n - 1);
-  $('#pgLabel').textContent = `Seite ${S.page + 1} von ${n}`;
+  $('#pgLabel').textContent = `${S.page + 1} / ${n}`; $('#pgLabel').setAttribute('aria-label', `Seite ${S.page + 1} von ${n}`);
   $('#pgPrev').disabled = S.page <= 0; $('#pgNext').disabled = S.page >= n - 1;
   const st = S.layout.stats;
-  $('#statsChip').textContent = `${n} ${n === 1 ? 'Seite' : 'Seiten'} · ${st.strokes.toLocaleString('de-DE')} Stiftstriche`;
+  $('#statsChip').textContent = `${n} ${n === 1 ? 'Seite' : 'Seiten'} · ${st.strokes.toLocaleString('de-DE')} Striche`;
 }
 let layT = 0;
 function relayout(now) {
@@ -2005,10 +2043,17 @@ function relayout(now) {
 }
 $('#pgPrev').addEventListener('click', () => { S.page--; updatePager(); drawSheet(); $('#sheetScroll').scrollTop = 0; });
 $('#pgNext').addEventListener('click', () => { S.page++; updatePager(); drawSheet(); $('#sheetScroll').scrollTop = 0; });
-$('#zoomSeg').addEventListener('click', e => {
-  const b = e.target.closest('button'); if (!b) return;
-  S.zoom = b.dataset.zoom; saveUi(); syncZoom(); drawSheet();
-});
+/* Zoom in der Bottom-Pill: − / Anzeige (Tipp = Anpassen ↔ 100 %) / + */
+const ZOOMS = [0.5, 0.75, 1, 1.25, 1.5, 2, 3];
+function stepZoom(dir) {
+  const cur = sheetScale() * 72 / 96;
+  const next = dir > 0 ? ZOOMS.find(z => z > cur + 0.01) : ZOOMS.slice().reverse().find(z => z < cur - 0.01);
+  if (!next) return;
+  S.zoom = String(next); saveUi(); syncZoom(); drawSheet();
+}
+$('#zoomIn').addEventListener('click', () => stepZoom(1));
+$('#zoomOut').addEventListener('click', () => stepZoom(-1));
+$('#zoomLabel').addEventListener('click', () => { S.zoom = S.zoom === 'fit' ? '1' : 'fit'; saveUi(); syncZoom(); drawSheet(); });
 /* Zwei-Finger-Zoom (Touch) und Strg+Mausrad/Trackpad-Pinch; Verschieben läuft über natives Scrollen */
 (function () {
   const sc = $('#sheetScroll'); let p0 = null, raf = 0;
@@ -2044,7 +2089,7 @@ $('#zoomSeg').addEventListener('click', e => {
     clearTimeout(zoomTo.t); zoomTo.t = setTimeout(saveUi, 400);
   }, { passive: false });
 })();
-function syncZoom() { $$('#zoomSeg button').forEach(b => b.classList.toggle('on', b.dataset.zoom === String(S.zoom))); }
+function syncZoom() { $('#zoomLabel').textContent = S.zoom === 'fit' ? 'Anpassen' : Math.round(parseFloat(S.zoom) * 100) + ' %'; }
 let rsT = 0;
 window.addEventListener('resize', () => { clearTimeout(rsT); rsT = setTimeout(() => { drawSheet(); if (!$('#cropModal').hidden) fitCrop(); }, 80); });
 
@@ -2061,6 +2106,15 @@ function updateEditorStats() {
   const t = S.draft.text.trim(), words = t ? t.split(/\s+/).length : 0;
   $('#editorStats').textContent = `${words.toLocaleString('de-DE')} Wörter · ${S.draft.text.length.toLocaleString('de-DE')} Zeichen · automatisch lokal gespeichert`;
 }
+/* Hochzahlen (x^2, x2 -> x²) beim Verlassen des Feldes setzen – nicht während des Tippens */
+function applyTypo(el, key) {
+  if (S.settings.autoSup === false) return;
+  const t = TW.typo(el.value);
+  if (t === el.value) return;
+  el.value = t; S.draft[key] = t; saveDraft(); relayout();
+}
+editor.addEventListener('change', () => applyTypo(editor, 'text'));
+titleInput.addEventListener('change', () => applyTypo(titleInput, 'title'));
 editor.addEventListener('input', () => {
   S.draft.text = editor.value;
   if (S.draft.isSample) { S.draft.isSample = false; $('#sampleBadge').hidden = true; updateAppendOption(); }
@@ -2335,8 +2389,34 @@ document.addEventListener('paste', e => {
   if (f.length) { e.preventDefault(); runImport(f); }
 });
 
+/* ---------- Info-Popover: Details erst auf Tipp ---------- */
+const pop = $('#pop'); let popBtn = null;
+const infoFill = {};
+function closePop() { if (popBtn) popBtn.setAttribute('aria-expanded', 'false'); popBtn = null; pop.hidden = true; }
+function openPop(btn) {
+  const tpl = document.getElementById('info-' + btn.dataset.info); if (!tpl) return;
+  pop.innerHTML = ''; pop.appendChild(tpl.content.cloneNode(true));
+  if (infoFill[btn.dataset.info]) infoFill[btn.dataset.info](pop);
+  $$('input[data-opt]', pop).forEach(i => { i.checked = S.settings[i.dataset.opt] !== false; });
+  pop.hidden = false; popBtn = btn; btn.setAttribute('aria-expanded', 'true');
+  const r = btn.getBoundingClientRect(), w = pop.offsetWidth, h = pop.offsetHeight, vw = window.innerWidth, vh = window.innerHeight;
+  let top = r.bottom + 6; if (top + h > vh - 12) top = Math.max(12, r.top - h - 6);
+  pop.style.left = clamp(r.right - w, 12, vw - w - 12) + 'px'; pop.style.top = top + 'px';
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest('.info');
+  if (b) { e.preventDefault(); if (popBtn === b) closePop(); else openPop(b); return; }
+  if (!pop.hidden && !e.target.closest('#pop')) closePop();
+});
+pop.addEventListener('change', e => {
+  const k = e.target.dataset && e.target.dataset.opt; if (!k) return;
+  S.settings[k] = e.target.checked; saveSettings(); relayout(true);
+});
+$('#panel').addEventListener('scroll', () => { if (!pop.hidden) closePop(); }, { passive: true });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closePop(); });
+
 /* Schnittstellen für die weiteren Teile */
-const APP = { runImport, $, $$, clamp, esc, K, LS, IDB, S, SAMPLE_MARK, toast, confirmDialog, openModal, closeModal, downloadBlob, safeName, setMode, setView, relayout, drawSheet, renderPage, snapshot, setDraft, syncDraftUi, saveSettings, syncZoom, showStaging };
+const APP = { infoFill, closePop, runImport, $, $$, clamp, esc, K, LS, IDB, S, SAMPLE_MARK, toast, confirmDialog, openModal, closeModal, downloadBlob, safeName, setMode, setView, relayout, drawSheet, renderPage, snapshot, setDraft, syncDraftUi, saveSettings, syncZoom, showStaging };
 window.TWApp.APP = APP;
 let renderTiles = () => {}, refreshBlattPanel = () => {}, updateWarnings = () => {};
 APP.hook = (name, fn) => { if (name === 'tiles') renderTiles = fn; else if (name === 'blatt') refreshBlattPanel = fn; else if (name === 'warn') updateWarnings = fn; };
@@ -2376,18 +2456,23 @@ function renderTiles() {
     for (const c of g.chars) {
       const o = S.own.glyphs[c];
       html += o
-        ? `<button class="tile done" data-ch="${esc(c)}" aria-label="Zeichen ${esc(c)} – gezeichnet"><span class="lab">${esc(c)}</span><span class="chk"><svg width="9" height="9" viewBox="0 0 12 12" fill="none" stroke="#fff" stroke-width="2.400" stroke-linecap="round" stroke-linejoin="round"><path d="m2 6.500 2.800 2.800L10 3.500"/></svg></span>${glyphSvg({ g: o, own: true }, 'pv')}</button>`
+        ? `<button class="tile done" data-ch="${esc(c)}" aria-label="Zeichen ${esc(c)} – gezeichnet"><span class="lab">${esc(c)}</span>${glyphSvg({ g: o, own: true }, 'pv')}</button>`
         : `<button class="tile" data-ch="${esc(c)}" aria-label="Zeichen ${esc(c)} – noch nicht gezeichnet">${esc(c)}</button>`;
     }
     html += '</div>';
   }
   host.innerHTML = html;
   const n = ownCount();
-  $('#ownCount').textContent = `${n} von ${ALL_CHARS.length}`;
+  const all = n === ALL_CHARS.length, badge = $('#ownCount');
+  badge.className = 'badge ' + (all ? 'ok' : 'off');
+  badge.textContent = all ? `Alle ${ALL_CHARS.length} Zeichen bereit` : `${n} von ${ALL_CHARS.length}`;
+  $('#btnDrawNext').hidden = all;
   updateNeeded();
+  $('#studioActions').hidden = $('#btnDrawNext').hidden && $('#btnDrawText').hidden;
   $('#ownBar').style.width = (n / ALL_CHARS.length * 100) + '%';
-  $('#ownStyleHint').textContent = n ? `${n} von ${ALL_CHARS.length} Zeichen gezeichnet – fehlende werden ergänzt` : 'Noch keine Zeichen gezeichnet';
+  $('#ownStyleHint').textContent = ownHint(n);
 }
+const ownHint = n => n === ALL_CHARS.length ? 'Alle Zeichen gezeichnet' : n ? `${n} von ${ALL_CHARS.length} Zeichen gezeichnet` : 'Noch keine Zeichen gezeichnet';
 A.hook('tiles', renderTiles);
 $('#tileGroups').addEventListener('click', e => { const t = e.target.closest('.tile'); if (t) openDraw(t.dataset.ch, null); });
 /* Zeichen, die im aktuellen Text vorkommen, aber noch nicht gezeichnet sind – häufigste zuerst */
@@ -2396,14 +2481,9 @@ function neededChars() {
   for (let ch of S.draft.title + '\n' + S.draft.text) { ch = TW.CHAR_ALIAS[ch] || ch; if (ALL_CHARS.includes(ch) && !S.own.glyphs[ch]) cnt.set(ch, (cnt.get(ch) || 0) + 1); }
   return [...cnt.entries()].sort((a, b) => b[1] - a[1]).map(x => x[0]);
 }
-function updateNeeded() { const n = neededChars().length; const b = $('#btnDrawText'); b.textContent = n ? `Fehlende Zeichen aus meinem Text (${n})` : 'Alle Zeichen deines Textes sind gezeichnet'; b.disabled = !n; }
+function updateNeeded() { const n = neededChars().length; const b = $('#btnDrawText'); b.textContent = `Fehlende Zeichen aus meinem Text (${n})`; b.hidden = !n; }
 $('#btnDrawText').addEventListener('click', () => { const q = neededChars(); if (q.length) openDraw(q[0], q); });
 $('#btnDrawNext').addEventListener('click', () => { const c = ALL_CHARS.find(x => !S.own.glyphs[x]); if (c) openDraw(c, null); else toast('Alle Zeichen sind bereits gezeichnet.'); });
-$('#btnUseOwn').addEventListener('click', () => {
-  if (!ownCount()) { toast('Zeichne zuerst mindestens ein Zeichen.'); return; }
-  S.settings.style = 'eigen'; A.saveSettings(); A.relayout(true); refreshBlattPanel();
-  toast('Schriftstil „Meine eigene Handschrift“ ist aktiv.'); A.setView('stage');
-});
 
 /* ---------- Zeichenfeld (320 × 320, Apple Pencil) ---------- */
 const PAD = { size: 320, asc: 60, xh: 140, base: 220, desc: 280, unit: 1.6 };
@@ -2616,11 +2696,15 @@ function refreshBlattPanel() {
   $$('#inkSwatches .swatch').forEach(b => b.classList.toggle('on', b.dataset.hex === st.ink));
   const ink = TW.INKS.find(i => i.hex === st.ink); $('#inkName').textContent = ink ? '· ' + ink.name : '';
   $('#markFallback').checked = !!st.markFallback;
-  const g = TW.grid(st), size = TW.SIZES[st.size], rows = Math.max(1, Math.ceil(size.em * 1.2 / g.S - 1e-9));
-  $('#gridInfo').textContent = `A5 · 419,53 × 595,28 pt · erste Linie bei 50,25 pt · Abstand ${g.S.toFixed(2).replace('.', ',')} pt · ${g.rows} Grundlinien pro Seite` + (rows > 1 ? ` · Schriftgröße „${size.name}“ belegt hier ${rows} Rasterzeilen pro Textzeile.` : '.');
-  const n = ownCount();
-  $('#ownStyleHint').textContent = n ? `${n} von ${ALL_CHARS.length} Zeichen gezeichnet – fehlende werden ergänzt` : 'Noch keine Zeichen gezeichnet';
+  $('#ownStyleHint').textContent = ownHint(ownCount());
+  const own = st.style === 'eigen', card = $('#studioCard');      // Zeichenstudio nur bei „Meine eigene Handschrift“
+  if (own && card.hidden) renderTiles();
+  card.hidden = !own;
 }
+A.infoFill.paper = el => {
+  const st = S.settings, g = TW.grid(st), size = TW.SIZES[st.size], rows = Math.max(1, Math.ceil(size.em * 1.2 / g.S - 1e-9));
+  $('#gridInfo', el).textContent = `A5 · 419,53 × 595,28 pt · erste Linie bei 50,25 pt · Abstand ${g.S.toFixed(2).replace('.', ',')} pt · ${g.rows} Grundlinien pro Seite` + (rows > 1 ? ` · Schriftgröße „${size.name}“ belegt hier ${rows} Rasterzeilen pro Textzeile.` : '.');
+};
 A.hook('blatt', refreshBlattPanel);
 $('#inkSwatches').innerHTML = TW.INKS.map(i => `<button class="swatch" data-hex="${i.hex}" title="${esc(i.name)}" aria-label="${esc(i.name)}"><i style="background:${i.hex}"></i></button>`).join('');
 function changed() { A.saveSettings(); refreshBlattPanel(); A.relayout(true); }
@@ -2637,10 +2721,10 @@ function warnHtml() {
   const L = S.layout; if (!L) return '';
   let h = '';
   if (L.unmapped.size) h += `<div class="warnbox"><b>${L.unmapped.size} Zeichen ohne Vektorpfad.</b> Diese Zeichen können nicht als Handschrift gezeichnet werden und fehlen auf dem Blatt und im Export. Bitte im Text ersetzen:<div class="chars">${charList(L.unmapped)}</div></div>`;
-  if (S.settings.style === 'eigen' && L.fallback.size) h += `<div class="infobox"><b>Ergänzt durch Standardschrift:</b> ${L.fallback.size} Zeichen fehlen in deiner Handschrift${S.settings.markFallback ? ' (in der Vorschau bernsteinfarben markiert, im Export in Tintenfarbe)' : ''}.<div class="warnbox chars" style="background:transparent;border:0;padding:0">${charList(L.fallback)}</div></div>`;
+  if (S.settings.style === 'eigen' && L.fallback.size) h += `<details class="infobox"><summary style="min-height:28px;cursor:pointer"><b>${L.fallback.size} Zeichen</b> werden durch die Standardschrift ergänzt${S.settings.markFallback ? ' (in der Vorschau farbig markiert)' : ''}.</summary><div class="chars">${charList(L.fallback)}</div></details>`;
   return h;
 }
-function updateWarnings() { $('#warnArea').innerHTML = warnHtml(); }
+function updateWarnings() { const h = warnHtml(); $$('.warn-area').forEach(el => { el.innerHTML = h; el.hidden = !h; }); }
 A.hook('warn', updateWarnings);
 
 /* ---------- Lokale KI (Transformers.js + WebGPU, nur auf ausdrücklichen Klick) ---------- */
@@ -2666,7 +2750,7 @@ $('#aiModel').addEventListener('change', async e => {
 });
 async function detectGpu() {
   const b = $('#gpuBadge'), btn = $('#btnLoadModel');
-  const off = why => { b.className = 'badge off'; b.innerHTML = `<i></i>WebGPU nicht aktiv – KI deaktiviert, Editor &amp; Export voll nutzbar`; btn.disabled = true; btn.title = why; $('#aiError').hidden = false; $('#aiError').innerHTML = why; };
+  const off = why => { b.className = 'badge off'; b.innerHTML = '<i></i>nicht verfügbar'; b.title = 'WebGPU nicht aktiv – KI deaktiviert, Editor & Export voll nutzbar'; AI.gpuDetail = 'WebGPU ist nicht aktiv. Die KI ist deaktiviert, Editor und Export sind voll nutzbar.'; btn.disabled = true; btn.title = why; $('#aiError').hidden = false; $('#aiError').innerHTML = why; aiChanged(); };
   if (location.protocol === 'file:') { off('Die Datei wurde über <b>file://</b> geöffnet. Safari stellt WebGPU nur über eine <b>https://</b>-Adresse bereit – siehe Zahnrad → „HTTPS-Hosting &amp; Home-Bildschirm“.'); return; }
   if (!('gpu' in navigator)) { off('Dieser Browser stellt kein WebGPU bereit (Safari ab iPadOS 26, oder unter iPadOS 18 als Feature-Flag aktivieren).'); return; }
   try {
@@ -2675,7 +2759,7 @@ async function detectGpu() {
     AI.gpu = true;
     AI.f16 = ad.features.has('shader-f16'); AI.dtype = AI.f16 ? 'q4f16' : 'q4';
     const apple = /Mac|iPad|iPhone/.test(navigator.platform || '') || /Macintosh|iPad/.test(navigator.userAgent);
-    b.className = 'badge ok'; b.innerHTML = `<i></i>WebGPU verfügbar${apple ? ' (M2 bereit)' : ''}`;
+    b.className = 'badge ok'; b.innerHTML = '<i></i>bereit'; b.title = `WebGPU verfügbar${apple ? ' (M2 bereit)' : ''}`; AI.gpuDetail = `WebGPU verfügbar${apple ? ' (M2 bereit)' : ''}${AI.f16 ? '' : ', ohne shader-f16 (größeres Modell)'}.`;
     btn.disabled = false; btn.textContent = loadLabel(); aiChanged();
   } catch (e) { off('WebGPU konnte nicht initialisiert werden: ' + esc(e.message || e)); }
 }
@@ -2724,12 +2808,12 @@ function aiKill(reason) {
   clearInterval(AI.tick);
   if (AI.worker) { try { AI.worker.terminate(); } catch (e) { /* egal */ } AI.worker = null; }
   for (const p of AI.pending.values()) p.rej(new Error(reason || 'abgebrochen'));
-  AI.pending.clear(); AI.running = false; AI.state = 'idle'; AI.loaded = null;
+  AI.pending.clear(); AI.running = false; AI.state = 'idle'; AI.loaded = null; AI.after = null;
 }
 function idleUi() {
   const btn = $('#btnLoadModel');
   btn.hidden = false; btn.disabled = !AI.gpu; btn.textContent = loadLabel();
-  $('#modelProg').hidden = true; $('#btnCancelModel').hidden = true; $('#aiModel').disabled = false; $('#btnRewrite').hidden = true;
+  $('#modelProg').hidden = true; $('#btnCancelModel').hidden = true; $('#aiModel').disabled = false;
   aiChanged();
 }
 function onWorkerMessage(m) {
@@ -2743,7 +2827,8 @@ function onWorkerMessage(m) {
     clearInterval(AI.tick); aiLog('Modell bereit');
     AI.state = 'ready'; AI.loaded = AI.sel; $('#aiModel').disabled = false; $('#btnCancelModel').hidden = true;
     $('#modelBar').style.width = '100%'; $('#modelMsg').textContent = 'Tizian ist bereit (läuft lokal über WebGPU im Hintergrund).';
-    $('#btnLoadModel').hidden = true; $('#btnRewrite').hidden = false; aiChanged();
+    $('#btnLoadModel').hidden = true; aiChanged();
+    if (AI.after === 'rewrite') { AI.after = null; setTimeout(() => $('#btnRewrite').click(), 50); }
   } else if (m.t === 'tok') { const p = AI.pending.get(m.id); if (p && p.onTok) p.onTok(m.x); }
   else if (m.t === 'done') { const p = AI.pending.get(m.id); if (p) { AI.pending.delete(m.id); p.res({ text: m.text, interrupted: m.interrupted }); } }
   else if (m.t === 'error' || m.t === 'fatal') {
@@ -2771,9 +2856,9 @@ function updateLoadMsg() {
 }
 $('#btnLoadModel').addEventListener('click', async () => {
   if (AI.state === 'loading' || AI.state === 'ready') return;
-  if (!(await confirmDialog('Tizian laden?', `Tizian ist ein lokales KI-Modell. Es werden ca. ${aiMb()} MB (geschätzt) von huggingface.co heruntergeladen und im Browser-Cache dieses Geräts gespeichert (am besten im WLAN). Die Verarbeitung deiner Texte bleibt danach vollständig lokal.`, 'Jetzt laden'))) return;
+  if (!(await confirmDialog('Tizian laden?', `Tizian ist ein lokales KI-Modell. Es werden ca. ${aiMb()} MB (geschätzt) von huggingface.co heruntergeladen und im Browser-Cache dieses Geräts gespeichert (am besten im WLAN). Die Verarbeitung deiner Texte bleibt danach vollständig lokal.`, 'Jetzt laden'))) { AI.after = null; return; }
   AI.state = 'loading'; aiError(''); AI.files = new Map(); AI.log = []; AI.t0 = performance.now(); AI.t100 = 0;
-  $('#aiModel').disabled = true; $('#btnLoadModel').hidden = true; $('#btnCancelModel').hidden = false;
+  $('#aiModel').disabled = true; $('#btnLoadModel').hidden = true; $('#btnCancelModel').hidden = false; aiChanged();
   $('#modelProg').hidden = false; $('#modelBar').style.width = '0%'; $('#modelMsg').textContent = 'Transformers.js wird im Hintergrund geladen (cdn.jsdelivr.net) …';
   const compat = $('#aiCompat').checked, noCache = $('#aiNoCache').checked;
   const dtype = (AI.f16 && !compat) ? 'q4f16' : 'q4', model = AI.models[AI.sel].id;
@@ -2849,10 +2934,21 @@ function showFactWarn() {
   w.innerHTML = msgs.length ? '⚠️ <b>Fakten-/Zahlen-Wächter – bitte prüfen:</b><br>' + msgs.join('<br>') : '';
 }
 $('#cmpAi').addEventListener('input', showFactWarn);
+/* Ein Knopf für alles: ist Tizian noch nicht geladen, startet der Tipp das Laden und glättet danach automatisch */
+A.infoFill.ki = el => { $('#gpuDetail', el).textContent = AI.gpuDetail || 'WebGPU wird geprüft …'; };
+document.addEventListener('tw-ai-state', () => {
+  const b = $('#btnRewrite'), loading = AI.state === 'loading';
+  b.disabled = !AI.gpu || loading;
+  b.innerHTML = loading ? '<span class="spin"></span> Tizian wird geladen …' : 'Text jetzt glätten';
+});
 $('#btnRewrite').addEventListener('click', async () => {
-  if (AI.state !== 'ready' || AI.running) return;
+  if (AI.running || AI.state === 'loading') return;
+  if (AI.state !== 'ready') {
+    if (S.draft.text.trim().length < 20) { toast('Der Entwurf ist zu kurz zum Glätten.'); return; }
+    AI.after = 'rewrite'; $('#btnLoadModel').click(); return;
+  }
   const src = S.draft.text.trim();
-  if (src.length < 20) { toast('Der Entwurf ist zu kurz zum Umformulieren.'); return; }
+  if (src.length < 20) { toast('Der Entwurf ist zu kurz zum Glätten.'); return; }
   const chunks = chunkText(src), todo = chunks.filter(c => !c.pass).length;
   $('#cmpOrig').value = src; $('#cmpAi').value = ''; $('#cmpAi').readOnly = true;
   $('#cmpWarn').hidden = true; $('#cmpTake').disabled = true; $('#cmpCancel').hidden = false;
@@ -3091,15 +3187,21 @@ const saveProfile = () => { P.name = $('#stuName').value.trim().slice(0, 40); P.
 
 /* ---------- Zustand der Schaltflächen ---------- */
 function refresh() {
-  const ready = AI.state === 'ready';
-  $('#btnSolvePages').disabled = $('#btnSolveEditor').disabled = $('#btnSolveStaging').disabled = !ready;
-  $('#solveHint').textContent = !ready ? 'Zuerst oben Tizian laden (für Aufgaben wird „Besser“ empfohlen).'
-    : AI.loaded === 'schnell' ? 'Tizian ist bereit. Tipp: Das Modell „Besser“ löst Aufgaben zuverlässiger.' : 'Tizian ist bereit.';
+  $('#btnSolvePages').disabled = $('#btnSolveEditor').disabled = $('#btnSolveStaging').disabled = !AI.gpu || AI.state === 'loading';
+  $('#solveHint').textContent = AI.state === 'ready' && AI.loaded === 'schnell' ? 'Tipp: Das Modell „Besser“ löst Aufgaben zuverlässiger.' : 'Buchseite senden, Tizian schreibt die Lösungen aufs Blatt.';
+}
+/* Tizian ist noch nicht geladen: Laden anstoßen (mit Rückfrage), danach tippt man erneut */
+function needTizian() {
+  if (AI.state === 'ready') return false;
+  if (!AI.gpu) { toast('Tizian ist auf diesem Gerät nicht verfügbar (WebGPU fehlt).'); return true; }
+  toast('Tizian wird zuerst geladen. Danach bitte erneut tippen.', 4500);
+  $('#btnLoadModel').click();
+  return true;
 }
 document.addEventListener('tw-ai-state', refresh); refresh();
 
 /* ---------- Eingänge ---------- */
-$('#btnSolvePages').addEventListener('click', () => { if (AI.state !== 'ready') { toast('Bitte zuerst Tizian laden.'); return; } $('#solveFile').click(); });
+$('#btnSolvePages').addEventListener('click', () => { if (needTizian()) return; $('#solveFile').click(); });
 $('#solveFile').addEventListener('change', e => { const f = Array.from(e.target.files || []); e.target.value = ''; if (f.length) A.runImport(f, 'solve'); });
 $('#btnSolveEditor').addEventListener('click', () => { const t = S.draft.text.trim(); if (!t) { toast('Der Notiztext ist leer.'); return; } solveText(t, 'Notiztext'); });
 $('#btnSolveStaging').addEventListener('click', () => { const t = $('#stagingText').value.trim(); if (!t) { toast('Das Prüfungsfenster ist leer.'); return; } solveText(t, 'Erkannter Text'); });
@@ -3108,7 +3210,7 @@ $('#btnSolveStaging').addEventListener('click', () => { const t = $('#stagingTex
 let results = [], stats = null;
 const outEl = $('#solveOut'), tasksEl = $('#solveTasks');
 function solveText(text, info) {
-  if (AI.state !== 'ready') { toast('Bitte zuerst Tizian laden.'); return; }
+  if (needTizian()) return;
   if (AI.running) { toast('Die KI arbeitet noch. Bitte kurz warten oder abbrechen.'); return; }
   tasksEl.value = text; outEl.value = ''; results = [];
   $('#solveWarn').hidden = true; $('#solveBy').textContent = ''; $('#solveProgress').textContent = info ? '· ' + info : '';

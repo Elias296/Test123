@@ -18,15 +18,21 @@ const saveProfile = () => { P.name = $('#stuName').value.trim().slice(0, 40); P.
 
 /* ---------- Zustand der Schaltflächen ---------- */
 function refresh() {
-  const ready = AI.state === 'ready';
-  $('#btnSolvePages').disabled = $('#btnSolveEditor').disabled = $('#btnSolveStaging').disabled = !ready;
-  $('#solveHint').textContent = !ready ? 'Zuerst oben Tizian laden (für Aufgaben wird „Besser“ empfohlen).'
-    : AI.loaded === 'schnell' ? 'Tizian ist bereit. Tipp: Das Modell „Besser“ löst Aufgaben zuverlässiger.' : 'Tizian ist bereit.';
+  $('#btnSolvePages').disabled = $('#btnSolveEditor').disabled = $('#btnSolveStaging').disabled = !AI.gpu || AI.state === 'loading';
+  $('#solveHint').textContent = AI.state === 'ready' && AI.loaded === 'schnell' ? 'Tipp: Das Modell „Besser“ löst Aufgaben zuverlässiger.' : 'Buchseite senden, Tizian schreibt die Lösungen aufs Blatt.';
+}
+/* Tizian ist noch nicht geladen: Laden anstoßen (mit Rückfrage), danach tippt man erneut */
+function needTizian() {
+  if (AI.state === 'ready') return false;
+  if (!AI.gpu) { toast('Tizian ist auf diesem Gerät nicht verfügbar (WebGPU fehlt).'); return true; }
+  toast('Tizian wird zuerst geladen. Danach bitte erneut tippen.', 4500);
+  $('#btnLoadModel').click();
+  return true;
 }
 document.addEventListener('tw-ai-state', refresh); refresh();
 
 /* ---------- Eingänge ---------- */
-$('#btnSolvePages').addEventListener('click', () => { if (AI.state !== 'ready') { toast('Bitte zuerst Tizian laden.'); return; } $('#solveFile').click(); });
+$('#btnSolvePages').addEventListener('click', () => { if (needTizian()) return; $('#solveFile').click(); });
 $('#solveFile').addEventListener('change', e => { const f = Array.from(e.target.files || []); e.target.value = ''; if (f.length) A.runImport(f, 'solve'); });
 $('#btnSolveEditor').addEventListener('click', () => { const t = S.draft.text.trim(); if (!t) { toast('Der Notiztext ist leer.'); return; } solveText(t, 'Notiztext'); });
 $('#btnSolveStaging').addEventListener('click', () => { const t = $('#stagingText').value.trim(); if (!t) { toast('Das Prüfungsfenster ist leer.'); return; } solveText(t, 'Erkannter Text'); });
@@ -35,7 +41,7 @@ $('#btnSolveStaging').addEventListener('click', () => { const t = $('#stagingTex
 let results = [], stats = null;
 const outEl = $('#solveOut'), tasksEl = $('#solveTasks');
 function solveText(text, info) {
-  if (AI.state !== 'ready') { toast('Bitte zuerst Tizian laden.'); return; }
+  if (needTizian()) return;
   if (AI.running) { toast('Die KI arbeitet noch. Bitte kurz warten oder abbrechen.'); return; }
   tasksEl.value = text; outEl.value = ''; results = [];
   $('#solveWarn').hidden = true; $('#solveBy').textContent = ''; $('#solveProgress').textContent = info ? '· ' + info : '';

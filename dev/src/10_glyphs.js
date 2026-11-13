@@ -214,7 +214,7 @@ const BUILTIN = { klar: new Map(), locker: new Map() };
   for (const st of ['klar', 'locker']) {
     const T = BUILTIN[st];
     for (const [u, b] of [['ä', 'a'], ['ö', 'o'], ['ü', 'u'], ['Ä', 'A'], ['Ö', 'O'], ['Ü', 'U']]) T.set(u, composeAccent(T.get(b), b, '̈'));
-    for (const [sup, d] of [['²', '2'], ['³', '3'], ['¹', '1']]) T.set(sup, normGlyph(shiftStrokes(T.get(d).s, 0, 48, 0.55)));
+    for (const [sup, d] of [['⁰', '0'], ['¹', '1'], ['²', '2'], ['³', '3'], ['⁴', '4'], ['⁵', '5'], ['⁶', '6'], ['⁷', '7'], ['⁸', '8'], ['⁹', '9'], ['⁻', '-'], ['⁺', '+']]) T.set(sup, normGlyph(shiftStrokes(T.get(d).s, 0, 48, 0.55)));
   }
 })();
 

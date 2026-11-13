@@ -36,7 +36,7 @@ WebGPU ist in Safari ab iPadOS 26 aktiv (unter iPadOS 18: Einstellungen → Apps
 Das Modell (ca. 480 MB) wird erst nach Tipp auf „Lokales KI-Modell laden“ geholt. Ohne KI funktioniert alles andere unverändert.
 
 ## Aufgaben lösen (Hausaufgaben-Helfer)
-Import & Text → Karte **Aufgaben lösen**: optionalen Namen für die Überschrift, Klasse und „Rechenweg zeigen“ einstellen, **Tizian** (so heißt die lokale KI) laden
+Tab **Text & KI** → Karte **Aufgaben lösen** (Einstellungen aufklappen): optionalen Namen für die Überschrift, Klasse und „Rechenweg zeigen“ einstellen, **Tizian** (so heißt die lokale KI) laden
 (für Aufgaben wird **Besser · Qwen2.5-1.5B** empfohlen), dann **Buchseite(n) senden & lösen**.
 Ablauf: Zuschnitt → lokale OCR → Aufgaben werden an Nummern („1.“, „2)“, „Aufgabe 3“) getrennt → reine Rechenzeilen (`345 + 678 =`) löst ein exakter
 Rechner, alles andere die lokale KI → Vergleichsfenster (Aufgaben links, Lösungen rechts, beides bearbeitbar, „Erneut lösen“) → Übernahme als neue Notiz
@@ -58,7 +58,14 @@ und das 1,5-B-Modell wurde nicht auf einem iPad getestet (Speicherbedarf!).
 
 ZIP, LZ4, TPL, Protobuf und PDF sind in der Datei selbst implementiert; kein Tracking, kein Konto.
 
+## Oberfläche
+Drei Schritte: **Text & KI** (Notiztext, Screenshot-Import, Tizian, Aufgaben lösen) · **Handschrift** (Schriftstil, Größe, Tinte;
+bei „Meine eigene Handschrift“ zusätzlich das Zeichenstudio) · **Papier & Export** (Blattvorlage, Export, Selbsttest).
+Details stehen hinter den ⓘ-Symbolen der Karten. Zoom und Seitenwechsel liegen in der Leiste unter dem Blatt.
+Hochzahlen: `x^2`, `x2`, `cm3` werden zu x², x², cm³ (abschaltbar im ⓘ der Karte „Notiztext“).
+
 ## Entwicklung
 - Quellen: `dev/src/` · Bauen: `dev/tools/build.sh` (schreibt `Tintenwerk.html`) · Tests: `node dev/tools/test.js`
+- Browser-Tests (Playwright, lokaler Server auf Port 8765): `node dev/tools/e2e-ui.js`, `node dev/tools/e2e-solver.js`
 - `dev/tools/shape.py` vergleicht eine erzeugte `.goodnotes` strukturell mit einer Referenzdatei (`python3 -I dev/tools/shape.py ref.goodnotes out.goodnotes`).
 - Änderungen immer in `dev/src/` machen und neu bauen, nicht in `Tintenwerk.html`.

@@ -33,18 +33,23 @@ function renderTiles() {
     for (const c of g.chars) {
       const o = S.own.glyphs[c];
       html += o
-        ? `<button class="tile done" data-ch="${esc(c)}" aria-label="Zeichen ${esc(c)} – gezeichnet"><span class="lab">${esc(c)}</span><span class="chk"><svg width="9" height="9" viewBox="0 0 12 12" fill="none" stroke="#fff" stroke-width="2.400" stroke-linecap="round" stroke-linejoin="round"><path d="m2 6.500 2.800 2.800L10 3.500"/></svg></span>${glyphSvg({ g: o, own: true }, 'pv')}</button>`
+        ? `<button class="tile done" data-ch="${esc(c)}" aria-label="Zeichen ${esc(c)} – gezeichnet"><span class="lab">${esc(c)}</span>${glyphSvg({ g: o, own: true }, 'pv')}</button>`
         : `<button class="tile" data-ch="${esc(c)}" aria-label="Zeichen ${esc(c)} – noch nicht gezeichnet">${esc(c)}</button>`;
     }
     html += '</div>';
   }
   host.innerHTML = html;
   const n = ownCount();
-  $('#ownCount').textContent = `${n} von ${ALL_CHARS.length}`;
+  const all = n === ALL_CHARS.length, badge = $('#ownCount');
+  badge.className = 'badge ' + (all ? 'ok' : 'off');
+  badge.textContent = all ? `Alle ${ALL_CHARS.length} Zeichen bereit` : `${n} von ${ALL_CHARS.length}`;
+  $('#btnDrawNext').hidden = all;
   updateNeeded();
+  $('#studioActions').hidden = $('#btnDrawNext').hidden && $('#btnDrawText').hidden;
   $('#ownBar').style.width = (n / ALL_CHARS.length * 100) + '%';
-  $('#ownStyleHint').textContent = n ? `${n} von ${ALL_CHARS.length} Zeichen gezeichnet – fehlende werden ergänzt` : 'Noch keine Zeichen gezeichnet';
+  $('#ownStyleHint').textContent = ownHint(n);
 }
+const ownHint = n => n === ALL_CHARS.length ? 'Alle Zeichen gezeichnet' : n ? `${n} von ${ALL_CHARS.length} Zeichen gezeichnet` : 'Noch keine Zeichen gezeichnet';
 A.hook('tiles', renderTiles);
 $('#tileGroups').addEventListener('click', e => { const t = e.target.closest('.tile'); if (t) openDraw(t.dataset.ch, null); });
 /* Zeichen, die im aktuellen Text vorkommen, aber noch nicht gezeichnet sind – häufigste zuerst */
@@ -53,14 +58,9 @@ function neededChars() {
   for (let ch of S.draft.title + '\n' + S.draft.text) { ch = TW.CHAR_ALIAS[ch] || ch; if (ALL_CHARS.includes(ch) && !S.own.glyphs[ch]) cnt.set(ch, (cnt.get(ch) || 0) + 1); }
   return [...cnt.entries()].sort((a, b) => b[1] - a[1]).map(x => x[0]);
 }
-function updateNeeded() { const n = neededChars().length; const b = $('#btnDrawText'); b.textContent = n ? `Fehlende Zeichen aus meinem Text (${n})` : 'Alle Zeichen deines Textes sind gezeichnet'; b.disabled = !n; }
+function updateNeeded() { const n = neededChars().length; const b = $('#btnDrawText'); b.textContent = `Fehlende Zeichen aus meinem Text (${n})`; b.hidden = !n; }
 $('#btnDrawText').addEventListener('click', () => { const q = neededChars(); if (q.length) openDraw(q[0], q); });
 $('#btnDrawNext').addEventListener('click', () => { const c = ALL_CHARS.find(x => !S.own.glyphs[x]); if (c) openDraw(c, null); else toast('Alle Zeichen sind bereits gezeichnet.'); });
-$('#btnUseOwn').addEventListener('click', () => {
-  if (!ownCount()) { toast('Zeichne zuerst mindestens ein Zeichen.'); return; }
-  S.settings.style = 'eigen'; A.saveSettings(); A.relayout(true); refreshBlattPanel();
-  toast('Schriftstil „Meine eigene Handschrift“ ist aktiv.'); A.setView('stage');
-});
 
 /* ---------- Zeichenfeld (320 × 320, Apple Pencil) ---------- */
 const PAD = { size: 320, asc: 60, xh: 140, base: 220, desc: 280, unit: 1.6 };
@@ -273,11 +273,15 @@ function refreshBlattPanel() {
   $$('#inkSwatches .swatch').forEach(b => b.classList.toggle('on', b.dataset.hex === st.ink));
   const ink = TW.INKS.find(i => i.hex === st.ink); $('#inkName').textContent = ink ? '· ' + ink.name : '';
   $('#markFallback').checked = !!st.markFallback;
-  const g = TW.grid(st), size = TW.SIZES[st.size], rows = Math.max(1, Math.ceil(size.em * 1.2 / g.S - 1e-9));
-  $('#gridInfo').textContent = `A5 · 419,53 × 595,28 pt · erste Linie bei 50,25 pt · Abstand ${g.S.toFixed(2).replace('.', ',')} pt · ${g.rows} Grundlinien pro Seite` + (rows > 1 ? ` · Schriftgröße „${size.name}“ belegt hier ${rows} Rasterzeilen pro Textzeile.` : '.');
-  const n = ownCount();
-  $('#ownStyleHint').textContent = n ? `${n} von ${ALL_CHARS.length} Zeichen gezeichnet – fehlende werden ergänzt` : 'Noch keine Zeichen gezeichnet';
+  $('#ownStyleHint').textContent = ownHint(ownCount());
+  const own = st.style === 'eigen', card = $('#studioCard');      // Zeichenstudio nur bei „Meine eigene Handschrift“
+  if (own && card.hidden) renderTiles();
+  card.hidden = !own;
 }
+A.infoFill.paper = el => {
+  const st = S.settings, g = TW.grid(st), size = TW.SIZES[st.size], rows = Math.max(1, Math.ceil(size.em * 1.2 / g.S - 1e-9));
+  $('#gridInfo', el).textContent = `A5 · 419,53 × 595,28 pt · erste Linie bei 50,25 pt · Abstand ${g.S.toFixed(2).replace('.', ',')} pt · ${g.rows} Grundlinien pro Seite` + (rows > 1 ? ` · Schriftgröße „${size.name}“ belegt hier ${rows} Rasterzeilen pro Textzeile.` : '.');
+};
 A.hook('blatt', refreshBlattPanel);
 $('#inkSwatches').innerHTML = TW.INKS.map(i => `<button class="swatch" data-hex="${i.hex}" title="${esc(i.name)}" aria-label="${esc(i.name)}"><i style="background:${i.hex}"></i></button>`).join('');
 function changed() { A.saveSettings(); refreshBlattPanel(); A.relayout(true); }
@@ -294,10 +298,10 @@ function warnHtml() {
   const L = S.layout; if (!L) return '';
   let h = '';
   if (L.unmapped.size) h += `<div class="warnbox"><b>${L.unmapped.size} Zeichen ohne Vektorpfad.</b> Diese Zeichen können nicht als Handschrift gezeichnet werden und fehlen auf dem Blatt und im Export. Bitte im Text ersetzen:<div class="chars">${charList(L.unmapped)}</div></div>`;
-  if (S.settings.style === 'eigen' && L.fallback.size) h += `<div class="infobox"><b>Ergänzt durch Standardschrift:</b> ${L.fallback.size} Zeichen fehlen in deiner Handschrift${S.settings.markFallback ? ' (in der Vorschau bernsteinfarben markiert, im Export in Tintenfarbe)' : ''}.<div class="warnbox chars" style="background:transparent;border:0;padding:0">${charList(L.fallback)}</div></div>`;
+  if (S.settings.style === 'eigen' && L.fallback.size) h += `<details class="infobox"><summary style="min-height:28px;cursor:pointer"><b>${L.fallback.size} Zeichen</b> werden durch die Standardschrift ergänzt${S.settings.markFallback ? ' (in der Vorschau farbig markiert)' : ''}.</summary><div class="chars">${charList(L.fallback)}</div></details>`;
   return h;
 }
-function updateWarnings() { $('#warnArea').innerHTML = warnHtml(); }
+function updateWarnings() { const h = warnHtml(); $$('.warn-area').forEach(el => { el.innerHTML = h; el.hidden = !h; }); }
 A.hook('warn', updateWarnings);
 
 /* ---------- Lokale KI (Transformers.js + WebGPU, nur auf ausdrücklichen Klick) ---------- */
@@ -323,7 +327,7 @@ $('#aiModel').addEventListener('change', async e => {
 });
 async function detectGpu() {
   const b = $('#gpuBadge'), btn = $('#btnLoadModel');
-  const off = why => { b.className = 'badge off'; b.innerHTML = `<i></i>WebGPU nicht aktiv – KI deaktiviert, Editor &amp; Export voll nutzbar`; btn.disabled = true; btn.title = why; $('#aiError').hidden = false; $('#aiError').innerHTML = why; };
+  const off = why => { b.className = 'badge off'; b.innerHTML = '<i></i>nicht verfügbar'; b.title = 'WebGPU nicht aktiv – KI deaktiviert, Editor & Export voll nutzbar'; AI.gpuDetail = 'WebGPU ist nicht aktiv. Die KI ist deaktiviert, Editor und Export sind voll nutzbar.'; btn.disabled = true; btn.title = why; $('#aiError').hidden = false; $('#aiError').innerHTML = why; aiChanged(); };
   if (location.protocol === 'file:') { off('Die Datei wurde über <b>file://</b> geöffnet. Safari stellt WebGPU nur über eine <b>https://</b>-Adresse bereit – siehe Zahnrad → „HTTPS-Hosting &amp; Home-Bildschirm“.'); return; }
   if (!('gpu' in navigator)) { off('Dieser Browser stellt kein WebGPU bereit (Safari ab iPadOS 26, oder unter iPadOS 18 als Feature-Flag aktivieren).'); return; }
   try {
@@ -332,7 +336,7 @@ async function detectGpu() {
     AI.gpu = true;
     AI.f16 = ad.features.has('shader-f16'); AI.dtype = AI.f16 ? 'q4f16' : 'q4';
     const apple = /Mac|iPad|iPhone/.test(navigator.platform || '') || /Macintosh|iPad/.test(navigator.userAgent);
-    b.className = 'badge ok'; b.innerHTML = `<i></i>WebGPU verfügbar${apple ? ' (M2 bereit)' : ''}`;
+    b.className = 'badge ok'; b.innerHTML = '<i></i>bereit'; b.title = `WebGPU verfügbar${apple ? ' (M2 bereit)' : ''}`; AI.gpuDetail = `WebGPU verfügbar${apple ? ' (M2 bereit)' : ''}${AI.f16 ? '' : ', ohne shader-f16 (größeres Modell)'}.`;
     btn.disabled = false; btn.textContent = loadLabel(); aiChanged();
   } catch (e) { off('WebGPU konnte nicht initialisiert werden: ' + esc(e.message || e)); }
 }
@@ -381,12 +385,12 @@ function aiKill(reason) {
   clearInterval(AI.tick);
   if (AI.worker) { try { AI.worker.terminate(); } catch (e) { /* egal */ } AI.worker = null; }
   for (const p of AI.pending.values()) p.rej(new Error(reason || 'abgebrochen'));
-  AI.pending.clear(); AI.running = false; AI.state = 'idle'; AI.loaded = null;
+  AI.pending.clear(); AI.running = false; AI.state = 'idle'; AI.loaded = null; AI.after = null;
 }
 function idleUi() {
   const btn = $('#btnLoadModel');
   btn.hidden = false; btn.disabled = !AI.gpu; btn.textContent = loadLabel();
-  $('#modelProg').hidden = true; $('#btnCancelModel').hidden = true; $('#aiModel').disabled = false; $('#btnRewrite').hidden = true;
+  $('#modelProg').hidden = true; $('#btnCancelModel').hidden = true; $('#aiModel').disabled = false;
   aiChanged();
 }
 function onWorkerMessage(m) {
@@ -400,7 +404,8 @@ function onWorkerMessage(m) {
     clearInterval(AI.tick); aiLog('Modell bereit');
     AI.state = 'ready'; AI.loaded = AI.sel; $('#aiModel').disabled = false; $('#btnCancelModel').hidden = true;
     $('#modelBar').style.width = '100%'; $('#modelMsg').textContent = 'Tizian ist bereit (läuft lokal über WebGPU im Hintergrund).';
-    $('#btnLoadModel').hidden = true; $('#btnRewrite').hidden = false; aiChanged();
+    $('#btnLoadModel').hidden = true; aiChanged();
+    if (AI.after === 'rewrite') { AI.after = null; setTimeout(() => $('#btnRewrite').click(), 50); }
   } else if (m.t === 'tok') { const p = AI.pending.get(m.id); if (p && p.onTok) p.onTok(m.x); }
   else if (m.t === 'done') { const p = AI.pending.get(m.id); if (p) { AI.pending.delete(m.id); p.res({ text: m.text, interrupted: m.interrupted }); } }
   else if (m.t === 'error' || m.t === 'fatal') {
@@ -428,9 +433,9 @@ function updateLoadMsg() {
 }
 $('#btnLoadModel').addEventListener('click', async () => {
   if (AI.state === 'loading' || AI.state === 'ready') return;
-  if (!(await confirmDialog('Tizian laden?', `Tizian ist ein lokales KI-Modell. Es werden ca. ${aiMb()} MB (geschätzt) von huggingface.co heruntergeladen und im Browser-Cache dieses Geräts gespeichert (am besten im WLAN). Die Verarbeitung deiner Texte bleibt danach vollständig lokal.`, 'Jetzt laden'))) return;
+  if (!(await confirmDialog('Tizian laden?', `Tizian ist ein lokales KI-Modell. Es werden ca. ${aiMb()} MB (geschätzt) von huggingface.co heruntergeladen und im Browser-Cache dieses Geräts gespeichert (am besten im WLAN). Die Verarbeitung deiner Texte bleibt danach vollständig lokal.`, 'Jetzt laden'))) { AI.after = null; return; }
   AI.state = 'loading'; aiError(''); AI.files = new Map(); AI.log = []; AI.t0 = performance.now(); AI.t100 = 0;
-  $('#aiModel').disabled = true; $('#btnLoadModel').hidden = true; $('#btnCancelModel').hidden = false;
+  $('#aiModel').disabled = true; $('#btnLoadModel').hidden = true; $('#btnCancelModel').hidden = false; aiChanged();
   $('#modelProg').hidden = false; $('#modelBar').style.width = '0%'; $('#modelMsg').textContent = 'Transformers.js wird im Hintergrund geladen (cdn.jsdelivr.net) …';
   const compat = $('#aiCompat').checked, noCache = $('#aiNoCache').checked;
   const dtype = (AI.f16 && !compat) ? 'q4f16' : 'q4', model = AI.models[AI.sel].id;
@@ -506,10 +511,21 @@ function showFactWarn() {
   w.innerHTML = msgs.length ? '⚠️ <b>Fakten-/Zahlen-Wächter – bitte prüfen:</b><br>' + msgs.join('<br>') : '';
 }
 $('#cmpAi').addEventListener('input', showFactWarn);
+/* Ein Knopf für alles: ist Tizian noch nicht geladen, startet der Tipp das Laden und glättet danach automatisch */
+A.infoFill.ki = el => { $('#gpuDetail', el).textContent = AI.gpuDetail || 'WebGPU wird geprüft …'; };
+document.addEventListener('tw-ai-state', () => {
+  const b = $('#btnRewrite'), loading = AI.state === 'loading';
+  b.disabled = !AI.gpu || loading;
+  b.innerHTML = loading ? '<span class="spin"></span> Tizian wird geladen …' : 'Text jetzt glätten';
+});
 $('#btnRewrite').addEventListener('click', async () => {
-  if (AI.state !== 'ready' || AI.running) return;
+  if (AI.running || AI.state === 'loading') return;
+  if (AI.state !== 'ready') {
+    if (S.draft.text.trim().length < 20) { toast('Der Entwurf ist zu kurz zum Glätten.'); return; }
+    AI.after = 'rewrite'; $('#btnLoadModel').click(); return;
+  }
   const src = S.draft.text.trim();
-  if (src.length < 20) { toast('Der Entwurf ist zu kurz zum Umformulieren.'); return; }
+  if (src.length < 20) { toast('Der Entwurf ist zu kurz zum Glätten.'); return; }
   const chunks = chunkText(src), todo = chunks.filter(c => !c.pass).length;
   $('#cmpOrig').value = src; $('#cmpAi').value = ''; $('#cmpAi').readOnly = true;
   $('#cmpWarn').hidden = true; $('#cmpTake').disabled = true; $('#cmpCancel').hidden = false;

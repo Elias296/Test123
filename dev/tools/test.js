@@ -35,3 +35,14 @@ const TW = require('./t_engine.js');
   eq(S.assemble([{ label: '1', text: 'A' }, { label: '2', text: 'a) x\nb) y' }]), '**1.** A\n\n**2.** \na) x\nb) y');
   console.log('OK Aufgaben-Kern');
 })();
+// ---- Typografie: Hochzahlen und spitze Klammern
+(() => {
+  const eq = (a, b) => assert.strictEqual(a, b);
+  eq(TW.typo('y=x2 heißt Normalparabel'), 'y=x² heißt Normalparabel'); eq(TW.typo('x^2 + y^2 = r^2'), 'x² + y² = r²'); eq(TW.typo('10^-3 und a^(12)'), '10⁻³ und a¹²');
+  eq(TW.typo('x2+y2'), 'x²+y²'); eq(TW.typo('(a+b)^2'), '(a+b)²'); eq(TW.typo('5 cm2 und 3 km3, 2 m3'), '5 cm² und 3 km³, 2 m³');
+  for (const keep of ['CO2 und H2O', 'A4 Papier', 'x20', 'x2,5', 'B12', 'ab2', 'x_2', 'Seite 2', 'a^b', 'O2']) eq(TW.typo(keep), keep);
+  const L = TW.layout({ title: '', text: 'y=x2 und a < b > c, x^10' }, {});
+  eq([...L.unmapped.keys()].join(''), ''); assert(L.pages[0].glyphs.some(g => g.ch === '²') && L.pages[0].glyphs.some(g => g.ch === '<') && L.pages[0].glyphs.some(g => g.ch === '⁰'));
+  assert(!TW.layout({ title: '', text: 'y=x2' }, { autoSup: false }).pages[0].glyphs.some(g => g.ch === '²'));
+  console.log('OK Typografie');
+})();
