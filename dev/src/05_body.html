@@ -1,0 +1,360 @@
+<body>
+<header class="topbar">
+  <div class="brand">
+    <div class="logo" aria-hidden="true">
+      <svg width="22" height="22" viewBox="0 0 32 32" fill="none"><path d="M27 4C16.5 4.6 9.2 10.6 7.6 20.2L6.4 27l2.3-1.5c9.9-1.7 17-8.300 18.300-21.500Z" fill="#fff"/><path d="M6.200 28.200 19 12.500" stroke="#1E3A8A" stroke-width="1.700" stroke-linecap="round"/><path d="M11.500 21.500l6-.8M14.800 17.300l4.800-.500" stroke="#1E3A8A" stroke-width="1.300" stroke-linecap="round"/></svg>
+    </div>
+    <span class="name">Tintenwerk</span>
+    <input class="title-input" id="noteTitle" type="text" placeholder="Titel der Notiz" aria-label="Titel der aktuellen Notiz" autocomplete="off" spellcheck="false">
+  </div>
+  <nav class="seg steps" id="modeSeg" aria-label="Arbeitsschritte">
+    <button data-mode="import"><span class="n">1</span><span class="t-long">Import &amp; Text</span><span class="t-short">Import</span></button>
+    <button data-mode="schrift"><span class="n">2</span><span class="t-long">Eigene Schrift</span><span class="t-short">Schrift</span></button>
+    <button data-mode="blatt"><span class="n">3</span><span class="t-long">Blatt &amp; Export</span><span class="t-short">Blatt</span></button>
+  </nav>
+  <div class="actions">
+    <button class="icon-btn" id="btnUndo" title="Letzten Import rückgängig machen" aria-label="Letzten Import rückgängig machen" disabled>
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></svg>
+    </button>
+    <button class="icon-btn" id="btnNew" title="Neue leere Notiz" aria-label="Neue leere Notiz">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M12 12v6M9 15h6"/></svg>
+    </button>
+    <button class="icon-btn" id="btnSettings" title="Datenschutz &amp; Speicher" aria-label="Datenschutz und Speicher">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.700 1.700 0 0 0 .3 1.800l.1.1a2 2 0 1 1-2.800 2.800l-.1-.1a1.700 1.700 0 0 0-1.800-.3 1.700 1.700 0 0 0-1 1.500V21a2 2 0 1 1-4 0v-.1a1.700 1.700 0 0 0-1.100-1.500 1.700 1.700 0 0 0-1.800.3l-.1.1a2 2 0 1 1-2.800-2.800l.1-.1a1.700 1.700 0 0 0 .3-1.800 1.700 1.700 0 0 0-1.500-1H3a2 2 0 1 1 0-4h.1a1.700 1.700 0 0 0 1.500-1.100 1.700 1.700 0 0 0-.3-1.800l-.1-.1a2 2 0 1 1 2.800-2.800l.1.1a1.700 1.700 0 0 0 1.800.3h.1a1.700 1.700 0 0 0 1-1.500V3a2 2 0 1 1 4 0v.1a1.700 1.700 0 0 0 1 1.500 1.700 1.700 0 0 0 1.800-.3l.1-.1a2 2 0 1 1 2.800 2.800l-.1.1a1.700 1.700 0 0 0-.3 1.800v.1a1.700 1.700 0 0 0 1.500 1H21a2 2 0 1 1 0 4h-.1a1.700 1.700 0 0 0-1.500 1z"/></svg>
+    </button>
+    <button class="btn btn-primary cta" id="btnExport">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.200" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3M7 8l5-5 5 5M5 14v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5"/></svg>
+      <span class="long">Exportieren (.goodnotes / PDF)</span><span class="short">Exportieren</span>
+    </button>
+  </div>
+</header>
+
+<div class="subtabs">
+  <div class="seg fill" id="viewSeg">
+    <button data-view="panel" class="on">Werkzeuge</button>
+    <button data-view="stage">Blatt-Vorschau</button>
+  </div>
+</div>
+
+<main id="main" data-view="panel">
+  <aside class="panel" id="panel">
+
+    <!-- ============ 1. Import & Text ============ -->
+    <section data-panel="import">
+      <div class="card">
+        <h3>Screenshots importieren</h3>
+        <p class="sub">Mehrere Bilder aus Fotomediathek oder Dateien wählen, zuschneiden und lokal auf dem iPad in Text umwandeln.</p>
+        <input type="file" id="fileInput" accept="image/*" multiple hidden>
+        <button class="btn btn-primary btn-block" id="btnPick">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="1.800"/><path d="m4 18 5-5 4 4 3-3 4 4"/></svg>
+          Screenshots auswählen
+        </button>
+        <div id="ocrStatus" hidden style="margin-top:12px">
+          <div class="row" style="margin-bottom:6px"><span class="spin dark" id="ocrSpin"></span><span id="ocrMsg" class="hint grow">Vorbereitung …</span><button class="btn btn-ghost" id="ocrCancel">Abbrechen</button></div>
+          <div class="progress"><i id="ocrBar"></i></div>
+        </div>
+        <p class="hint" style="margin-top:10px">Die Texterkennung (Tesseract.js, Deutsch + Englisch) läuft vollständig im Browser. Formeln und komplexe Tabellen werden nur als einfacher Text erkannt.</p>
+      </div>
+
+      <div class="card stage-card" id="stagingCard" hidden>
+        <h3>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.200" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+          Erkannten Text prüfen &amp; korrigieren
+        </h3>
+        <p class="sub" id="stagingInfo">Dein aktueller Entwurf bleibt unverändert, bis du unten auf „Übernehmen“ tippst.</p>
+        <textarea id="stagingText" spellcheck="false" aria-label="Erkannter OCR-Text"></textarea>
+        <div class="stack" style="margin-top:10px">
+          <label class="radio on" id="optReplaceL"><input type="radio" name="takeMode" value="replace" checked><span><b>Als neue Notiz übernehmen</b> (ersetzt aktuellen Entwurf)<small>Der Titel wird aus der ersten sinnvollen Zeile erzeugt.</small></span></label>
+          <label class="radio" id="optAppendL"><input type="radio" name="takeMode" value="append"><span><b>An aktuelle Notiz anhängen</b><small id="appendHint">Fügt den Text mit einem Absatzumbruch unten an.</small></span></label>
+        </div>
+        <div class="row" style="margin-top:10px">
+          <button class="btn btn-ghost" id="btnDiscard">Verwerfen</button>
+          <button class="btn btn-amber grow" id="btnTake">Übernehmen</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Notiztext <span class="badge off" id="sampleBadge" hidden>Beispielnotiz</span></h3>
+        <p class="sub"><b>#</b> Überschrift · <b>-</b> Aufzählung · Leerzeile = Absatz · <b>**fett**</b></p>
+        <textarea id="editor" spellcheck="false" aria-label="Notiztext" placeholder="Text hier eingeben, einfügen oder per Screenshot importieren …"></textarea>
+        <div class="row" style="margin-top:6px"><span class="hint grow" id="editorStats"></span></div>
+      </div>
+
+      <div class="card">
+        <h3>Natürlicher formulieren <span class="hint" style="font-weight:600">· lokale KI</span></h3>
+        <div class="row" style="margin:6px 0 10px"><span class="badge off" id="gpuBadge"><i></i>WebGPU wird geprüft …</span></div>
+        <p class="sub">Formuliert den Entwurf flüssiger und persönlicher – direkt auf dem Gerät. Fakten, Zahlen, Namen und Fachbegriffe sollen erhalten bleiben; ein Fakten-Wächter prüft Zahlen, Namen und Fachbegriffe. Die KI ist optional: Editor, Handschrift und Export funktionieren auch ohne sie.</p>
+        <button class="btn btn-block" id="btnLoadModel" disabled>Lokales KI-Modell laden (ca. 480 MB)</button>
+        <div id="modelProg" hidden style="margin-top:10px">
+          <div class="progress amber"><i id="modelBar"></i></div>
+          <p class="hint" id="modelMsg" style="margin-top:6px">Download startet …</p>
+        </div>
+        <div class="warnbox" id="aiError" hidden style="margin-top:10px"></div>
+        <button class="btn btn-amber btn-block" id="btnRewrite" hidden style="margin-top:10px">Entwurf natürlicher formulieren</button>
+        <p class="hint" style="margin-top:8px">Kein automatischer Download. Tintenwerk verspricht keine Umgehung von KI-Detektoren – es geht um bessere, eigene Lernnotizen.</p>
+      </div>
+    </section>
+
+    <!-- ============ 2. Eigene Schrift ============ -->
+    <section data-panel="schrift" hidden>
+      <div class="card">
+        <h3>Zeichenstudio</h3>
+        <p class="sub">Tippe ein Zeichen an und schreibe es mit dem Apple Pencil. Gespeichert werden echte Stiftpfade – relativ zur Grundlinie.</p>
+        <div class="row"><div class="progress grow"><i id="ownBar" style="background:var(--ok)"></i></div><span class="hint" id="ownCount">0 von 85</span></div>
+        <button class="btn btn-primary btn-block" id="btnDrawText" style="margin-top:10px">Fehlende Zeichen aus meinem Text</button>
+        <div class="row" style="margin-top:8px">
+          <button class="btn grow" id="btnDrawNext">Nächstes fehlendes Zeichen</button>
+          <button class="btn grow" id="btnUseOwn">Als Schriftstil verwenden</button>
+        </div>
+        <div id="tileGroups"></div>
+      </div>
+      <div class="card">
+        <h3>Sicherung</h3>
+        <p class="sub">iPadOS kann lokale Browserdaten nach längerer Inaktivität löschen. Sichere deine Handschrift als JSON-Datei.</p>
+        <div class="stack">
+          <button class="btn btn-block" id="btnOwnExport">Handschrift als JSON herunterladen</button>
+          <button class="btn btn-block" id="btnOwnImport">JSON-Sicherung importieren</button>
+          <input type="file" id="ownFile" accept="application/json,.json" hidden>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 3. Blatt & Export ============ -->
+    <section data-panel="blatt" hidden>
+      <div class="card">
+        <h3>Handschrift</h3>
+        <span class="lbl">Schriftstil</span>
+        <div class="stack" id="styleOpts">
+          <label class="radio"><input type="radio" name="style" value="klar"><span><b>Klar &amp; ordentlich</b><small>Saubere, gut lesbare Vektor-Druckschrift</small></span></label>
+          <label class="radio"><input type="radio" name="style" value="locker"><span><b>Locker &amp; geschwungen</b><small>Leichte Neigung, natürliche Mikro-Variation</small></span></label>
+          <label class="radio"><input type="radio" name="style" value="eigen"><span><b>Meine eigene Handschrift</b><small id="ownStyleHint">Noch keine Zeichen gezeichnet</small></span></label>
+        </div>
+        <span class="lbl">Schriftgröße</span>
+        <div class="seg fill small" data-setting="size"><button data-v="fein">Fein</button><button data-v="mittel">Mittel</button><button data-v="gross">Groß</button></div>
+        <span class="lbl">Tintenfarbe <span id="inkName" style="font-weight:500"></span></span>
+        <div class="swatches" id="inkSwatches"></div>
+        <label class="switch" style="margin-top:6px"><input type="checkbox" id="markFallback"><span>Ersatzzeichen der Standardschrift in der Vorschau markieren</span></label>
+      </div>
+
+      <div id="warnArea" class="stack"></div>
+
+      <div class="card">
+        <h3>Goodnotes-Blatt</h3>
+        <span class="lbl">Papiertyp</span>
+        <div class="seg fill small" data-setting="paper"><button data-v="liniert">Liniert</button><button data-v="kariert">Kariert</button><button data-v="blanko">Blanko</button></div>
+        <span class="lbl">Papierfarbe</span>
+        <div class="seg fill small" data-setting="paperColor"><button data-v="weiss">Klassisch Weiß</button><button data-v="creme">Goodnotes-Creme</button></div>
+        <span class="lbl">Linien-/Kästchenabstand</span>
+        <div class="seg fill small" data-setting="spacing"><button data-v="ref">Referenz 17,5 pt</button><button data-v="5">5 mm</button><button data-v="6">6 mm</button><button data-v="7">7 mm</button></div>
+        <span class="lbl">Schreibränder links/rechts</span>
+        <div class="seg fill small" data-setting="margin"><button data-v="8">8 mm</button><button data-v="12">12 mm</button><button data-v="16">16 mm</button></div>
+        <p class="hint" style="margin-top:10px" id="gridInfo"></p>
+      </div>
+
+      <div class="card">
+        <h3>System- &amp; Export-Selbsttest</h3>
+        <p class="sub">Erzeugt die Exportdatei probeweise im Speicher, liest sie wieder ein und prüft UUID-Kopplung, Maße, Grundlinien und Ränder.</p>
+        <button class="btn btn-block" id="btnSelfTest">Selbsttest ausführen</button>
+        <ul class="checks" id="selfTestOut"></ul>
+      </div>
+
+      <div class="card">
+        <h3>Export</h3>
+        <div class="stack">
+          <button class="btn btn-primary btn-block" id="btnExportGn">Als .goodnotes exportieren</button>
+          <button class="btn btn-block" id="btnExportPdf">Als Standard-PDF exportieren</button>
+        </div>
+        <p class="hint" style="margin-top:10px">Das .goodnotes-Format basiert auf der Analyse der untersuchten Referenzdatei. Es ist keine offizielle Spezifikation und nicht für alle künftigen Goodnotes-Versionen garantiert.</p>
+      </div>
+    </section>
+  </aside>
+
+  <section class="stage" id="stage">
+    <div class="stage-top">
+      <div class="seg small" id="zoomSeg" title="Mit zwei Fingern zoomen"><button data-zoom="fit" class="on">Anpassen</button><button data-zoom="1">100 %</button><button data-zoom="1.250">125 %</button></div>
+      <span class="chip glass" id="statsChip"></span>
+    </div>
+    <div class="sheet-scroll" id="sheetScroll"><div class="sheet" id="sheet"><canvas id="sheetCanvas" aria-label="Vorschau des Goodnotes-Blattes"></canvas></div></div>
+    <div class="pager glass">
+      <button class="icon-btn" id="pgPrev" aria-label="Vorherige Seite"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.400" stroke-linecap="round" stroke-linejoin="round"><path d="m15 5-7 7 7 7"/></svg></button>
+      <span id="pgLabel">Seite 1 von 1</span>
+      <button class="icon-btn" id="pgNext" aria-label="Nächste Seite"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.400" stroke-linecap="round" stroke-linejoin="round"><path d="m9 5 7 7-7 7"/></svg></button>
+    </div>
+  </section>
+</main>
+
+<!-- ============ Zuschneiden ============ -->
+<div class="modal" id="cropModal" hidden>
+  <div class="modal-card wide">
+    <div class="modal-head">
+      <h2>Bild zuschneiden <small id="cropCount"></small></h2>
+      <button class="btn" id="cropCancel">Abbrechen</button>
+    </div>
+    <div class="crop-stage" id="cropStage">
+      <div class="crop-wrap" id="cropWrap">
+        <img id="cropImg" alt="" draggable="false">
+        <div class="crop-rect" id="cropRect">
+          <div class="ch" data-h="nw"></div><div class="ch" data-h="n"></div><div class="ch" data-h="ne"></div>
+          <div class="ch" data-h="w"></div><div class="ch" data-h="e"></div>
+          <div class="ch" data-h="sw"></div><div class="ch" data-h="s"></div><div class="ch" data-h="se"></div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" id="cropPreset">ChatGPT auf iPad</button>
+      <button class="btn btn-ghost" id="cropFull">Ganzes Bild</button>
+      <span class="grow"></span>
+      <button class="btn btn-ghost" id="cropSkip">Bild überspringen</button>
+      <button class="btn btn-primary" id="cropOk">Zuschneiden &amp; Text erkennen</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ Zeichenfeld ============ -->
+<div class="modal" id="drawModal" hidden>
+  <div class="modal-card mid">
+    <div class="modal-head">
+      <h2>Zeichen schreiben <small id="drawPos"></small></h2>
+      <button class="btn" id="drawCancel">Schließen</button>
+    </div>
+    <div class="modal-body">
+      <div class="draw-wrap">
+        <div class="draw-pad" id="drawPad"><canvas id="drawGuide" width="320" height="320"></canvas><canvas id="drawCanvas" width="320" height="320"></canvas></div>
+        <div class="draw-side">
+          <div class="bigchar" id="drawChar">a</div>
+          <div class="legend">
+            <i></i><span>Oberlänge</span>
+            <i class="dash"></i><span>Mittellinie (x-Höhe)</span>
+            <i class="base"></i><span>Grundlinie</span>
+            <i></i><span>Unterlänge</span>
+          </div>
+          <label class="switch"><input type="checkbox" id="drawTemplate" checked><span>Vorlage anzeigen</span></label>
+          <label class="switch"><input type="checkbox" id="drawPenOnly"><span>Nur Stift (Finger ignorieren)</span></label>
+          <span class="badge off" id="drawState">Noch nicht gezeichnet</span>
+          <p class="hint" id="drawPenInfo">Stiftdruck wird aufgezeichnet, sobald ein Apple Pencil erkannt wird.</p>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" id="drawUndo">Strich zurück</button>
+      <button class="btn" id="drawClear">Neu zeichnen</button>
+      <button class="btn btn-danger" id="drawDelete">Entfernen</button>
+      <span class="grow"></span>
+      <button class="btn" id="drawSave">Speichern</button>
+      <button class="btn btn-primary" id="drawSaveNext">Speichern &amp; weiter</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ KI-Vergleich ============ -->
+<div class="modal" id="cmpModal" hidden>
+  <div class="modal-card wide">
+    <div class="modal-head">
+      <h2>KI-Vorschlag prüfen <small id="cmpProgress"></small></h2>
+      <button class="btn btn-danger" id="cmpCancel" hidden>Generierung abbrechen</button>
+    </div>
+    <div class="warnbox cmp-warn" id="cmpWarn" hidden></div>
+    <div class="cmp">
+      <div><h4><span>Original (Entwurf)</span><span id="cmpLenA"></span></h4><textarea id="cmpOrig" readonly spellcheck="false"></textarea></div>
+      <div><h4><span>KI-Fassung (bearbeitbar)</span><span id="cmpLenB"></span></h4><textarea id="cmpAi" spellcheck="false"></textarea></div>
+    </div>
+    <div class="modal-foot">
+      <span class="hint grow">Der Entwurf wird erst durch „KI-Fassung übernehmen“ ersetzt. Bitte Fakten selbst gegenlesen.</span>
+      <button class="btn" id="cmpDiscard">Verwerfen</button>
+      <button class="btn btn-primary" id="cmpTake" disabled>KI-Fassung übernehmen</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ Export ============ -->
+<div class="modal" id="exportModal" hidden>
+  <div class="modal-card">
+    <div class="modal-head"><h2>Exportieren</h2><button class="btn" data-close>Schließen</button></div>
+    <div class="modal-body">
+      <p id="exportSummary" style="margin-bottom:10px"></p>
+      <div id="exportWarn"></div>
+      <div class="stack" style="margin-top:10px">
+        <button class="btn btn-primary btn-block" id="exGn">.goodnotes neu erzeugen</button>
+        <button class="btn btn-block" id="exPdf">Stattdessen als Standard-PDF exportieren</button>
+      </div>
+      <div id="exportResult" hidden style="margin-top:14px">
+        <div class="infobox" id="exportResultMsg"></div>
+        <div class="stack" style="margin-top:10px">
+          <button class="btn btn-primary btn-block" id="exShare" hidden>Teilen / in Goodnotes öffnen</button>
+          <a class="btn btn-block" id="exDownload" download>In „Dateien“ sichern (Download)</a>
+        </div>
+      </div>
+      <ul class="checks" id="exportChecks"></ul>
+      <p class="hint" style="margin-top:12px">Hinweis: Das .goodnotes-Format wurde aus der untersuchten Referenzdatei abgeleitet (ZIP, Protobuf-Ereignisse, Apple-LZ4, TPL-Stiftpfade). Es ist keine offizielle Spezifikation; künftige Goodnotes-Versionen können sich anders verhalten. Der Suchindex der Seite wird leer angelegt – Goodnotes erkennt Handschrift erst nach eigener Indizierung.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ============ Datenschutz & Speicher ============ -->
+<div class="modal" id="settingsModal" hidden>
+  <div class="modal-card mid">
+    <div class="modal-head"><h2>Datenschutz &amp; Speicher</h2><button class="btn" data-close>Schließen</button></div>
+    <div class="modal-body">
+      <h4>Alles bleibt auf deinem Gerät</h4>
+      <p>Entwurf, Undo-Stand und Einstellungen liegen im lokalen Browserspeicher (<code>localStorage</code>), deine eigene Handschrift zusätzlich in <code>IndexedDB</code> dieses Geräts. Es gibt kein Konto, kein Tracking, keine Analyse-Skripte und keinen Server von Tintenwerk. Screenshots, OCR-Text und KI-Verarbeitung verlassen das iPad nicht.</p>
+      <p id="storageInfo" class="hint" style="margin-top:6px"></p>
+      <div class="warnbox" style="margin-top:10px"><b>Wichtig für iPadOS:</b> Safari kann lokale Browserdaten bereinigen, wenn eine Website längere Zeit (ca. 7 Tage) nicht genutzt wird. Sichere deine eigene Handschrift deshalb als JSON-Datei (Schritt 2 → Sicherung). Zum Home-Bildschirm hinzugefügte Web-Apps sind davon in der Regel ausgenommen.</div>
+
+      <h4>Gezielt löschen</h4>
+      <div class="stack">
+        <button class="btn btn-block" id="delDraft">Entwürfe löschen (Notiz &amp; Undo-Stand)</button>
+        <button class="btn btn-block" id="delOwn">Eigene Handschrift zurücksetzen</button>
+        <button class="btn btn-block" id="delModel">Heruntergeladenes KI-Modell aus dem Cache entfernen</button>
+        <button class="btn btn-danger btn-block" id="delAll">Komplett-Reset (alles löschen)</button>
+      </div>
+
+      <h4>Nachgeladene externe Quellen (nur bei Bedarf)</h4>
+      <ul>
+        <li><b>Tesseract.js 7.0.0</b> – Texterkennung (OCR). Quelle: <code>cdn.jsdelivr.net/npm/tesseract.js</code>, dazu WASM-Kern <code>tesseract.js-core</code> und Sprachdaten <code>@tesseract.js-data/deu</code> und <code>/eng</code> (ebenfalls jsDelivr). Wird erst beim ersten Screenshot-Import geladen.</li>
+        <li><b>Transformers.js 4.3.2</b> (<code>@huggingface/transformers</code>) – lokale KI über WebGPU. Quelle: <code>cdn.jsdelivr.net</code> (inkl. ONNX-Runtime-WASM). Wird erst nach Tipp auf „Lokales KI-Modell laden“ geladen.</li>
+        <li><b>KI-Modell</b> <code>onnx-community/Qwen2.5-0.5B-Instruct</code> (quantisiertes ONNX). Quelle: <code>huggingface.co</code>. Nur nach deinem ausdrücklichen Klick; danach im Browser-Cache.</li>
+        <li><b>Keine weitere Bibliothek</b>: ZIP, Apple-LZ4, TPL, Protobuf und PDF erzeugt Tintenwerk mit eigenem Code in dieser Datei (kein JSZip nötig) – der Export funktioniert auch offline.</li>
+      </ul>
+      <p class="hint">Beim Nachladen sehen die genannten CDNs technisch bedingt deine IP-Adresse; Inhalte deiner Notizen werden dabei nicht übertragen.</p>
+
+      <h4>Bereitstellung</h4>
+      <p>Status: <span id="hostState" class="badge off"></span></p>
+      <button class="btn btn-block" id="btnHostInfo" style="margin-top:8px">Info: HTTPS-Hosting &amp; Home-Bildschirm</button>
+      <p class="hint" style="margin-top:14px">Tintenwerk · Einzeldatei-Web-App · Version 1.0</p>
+    </div>
+  </div>
+</div>
+
+<!-- ============ Hosting-Info ============ -->
+<div class="modal" id="hostModal" hidden>
+  <div class="modal-card mid">
+    <div class="modal-head"><h2>HTTPS-Hosting &amp; Home-Bildschirm</h2><button class="btn" data-close>Schließen</button></div>
+    <div class="modal-body">
+      <p>Tintenwerk ist eine einzige Datei: <code>Tintenwerk.html</code>. Öffnest du sie direkt aus der Dateien-App (<code>file://</code>), schränkt Safari Sicherheitsfunktionen ein: <b>WebGPU</b> (lokale KI), Web-Worker für die OCR, der Browser-Cache für Modelle und „Zum Home-Bildschirm“ funktionieren dann nicht oder nur teilweise.</p>
+      <h4>Deshalb: einmal kostenlos unter einer festen https://-Adresse ablegen</h4>
+      <ol>
+        <li><b>GitHub Pages:</b> Repository anlegen → <code>Tintenwerk.html</code> hochladen → <i>Settings → Pages → Deploy from a branch</i> → Adresse <code>https://DEINNAME.github.io/REPO/Tintenwerk.html</code>.</li>
+        <li><b>Cloudflare Pages:</b> <i>Workers &amp; Pages → Create → Pages → Upload assets</i> → Ordner mit der Datei hochladen → Adresse <code>https://PROJEKT.pages.dev/Tintenwerk.html</code>.</li>
+      </ol>
+      <h4>Auf dem iPad</h4>
+      <ol>
+        <li>Adresse in <b>Safari</b> öffnen → Teilen-Symbol → <b>„Zum Home-Bildschirm“</b>.</li>
+        <li>Tintenwerk startet danach im Vollbild wie eine App; die Daten bleiben lokal.</li>
+        <li>Export: „Teilen / in Goodnotes öffnen“ wählen oder die Datei in „Dateien“ sichern und dort antippen → <b>In Goodnotes öffnen</b> → „Als neues Dokument importieren“.</li>
+      </ol>
+      <p class="hint">WebGPU ist in Safari ab iPadOS 26 standardmäßig aktiv. Unter iPadOS 18 lässt es sich unter Einstellungen → Apps → Safari → Erweitert → Feature Flags einschalten. Ohne WebGPU bleibt nur die KI-Umformulierung deaktiviert.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ============ Bestätigungsdialog ============ -->
+<div class="modal" id="confirmModal" hidden style="z-index:200">
+  <div class="modal-card" style="width:min(440px,100%)">
+    <div class="modal-body">
+      <h4 id="confirmTitle" style="font-size:17px"></h4>
+      <p id="confirmText" style="margin-top:6px;white-space:pre-line"></p>
+    </div>
+    <div class="modal-foot"><span class="grow"></span><button class="btn" id="confirmNo">Abbrechen</button><button class="btn btn-primary" id="confirmYes">OK</button></div>
+  </div>
+</div>
+<div class="toast" id="toast" hidden></div>

@@ -48,3 +48,8 @@ Das Modell (ca. 480 MB) wird erst nach Tipp auf „Lokales KI-Modell laden“ ge
 - Transformers.js 4.3.2 (cdn.jsdelivr.net) und Modell `onnx-community/Qwen2.5-0.5B-Instruct` (huggingface.co) – lokale KI
 
 ZIP, LZ4, TPL, Protobuf und PDF sind in der Datei selbst implementiert; kein Tracking, kein Konto.
+
+## Entwicklung
+- Quellen: `dev/src/` · Bauen: `dev/tools/build.sh` (schreibt `Tintenwerk.html`) · Tests: `node dev/tools/test.js`
+- `dev/tools/shape.py` vergleicht eine erzeugte `.goodnotes` strukturell mit einer Referenzdatei (`python3 -I dev/tools/shape.py ref.goodnotes out.goodnotes`).
+- Änderungen immer in `dev/src/` machen und neu bauen, nicht in `Tintenwerk.html`.
