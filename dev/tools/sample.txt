@@ -1,0 +1,16 @@
+Fotosynthese – Lernzettel
+
+Die Fotosynthese läuft in den Chloroplasten ab und wandelt Lichtenergie in chemische Energie um. Dabei entstehen aus 6 CO2 und 6 H2O genau 1 Molekül Glucose (C6H12O6) sowie 6 O2.
+
+# Lichtreaktion
+- findet an der Thylakoidmembran statt
+- Wasser wird gespalten (Fotolyse), es entstehen ATP & NADPH
+- Wellenlängen: 430 nm und 662 nm werden besonders gut absorbiert
+
+## Calvin-Zyklus
+1. Fixierung von CO2 durch RuBisCO
+2. Reduktion mit 12 NADPH und 18 ATP
+3. Regeneration des Akzeptors (RuBP)
+
+Merke: „Ohne Licht keine Glucose“ – 100 % der Energie stammen aus dem Sonnenlicht! Größe, Übung, Äpfel, Öl, weiß; café, naïve, señor? (a+b)=c / x*y #1 @home 5€
+Donaudampfschifffahrtsgesellschaftskapitänsmützenabzeichenherstellerverbandsvorsitzender

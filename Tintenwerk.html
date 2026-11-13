@@ -291,7 +291,7 @@ textarea:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px rgba(3
       <div class="card">
         <h3>Natürlicher formulieren <span class="hint" style="font-weight:600">· lokale KI</span></h3>
         <div class="row" style="margin:6px 0 10px"><span class="badge off" id="gpuBadge"><i></i>WebGPU wird geprüft …</span></div>
-        <p class="sub">Formuliert den Entwurf flüssiger und persönlicher – direkt auf dem Gerät. Fakten, Zahlen, Namen und Fachbegriffe sollen erhalten bleiben; ein Zahlen-Wächter prüft das Ergebnis. Die KI ist optional: Editor, Handschrift und Export funktionieren auch ohne sie.</p>
+        <p class="sub">Formuliert den Entwurf flüssiger und persönlicher – direkt auf dem Gerät. Fakten, Zahlen, Namen und Fachbegriffe sollen erhalten bleiben; ein Fakten-Wächter prüft Zahlen, Namen und Fachbegriffe. Die KI ist optional: Editor, Handschrift und Export funktionieren auch ohne sie.</p>
         <button class="btn btn-block" id="btnLoadModel" disabled>Lokales KI-Modell laden (ca. 480 MB)</button>
         <div id="modelProg" hidden style="margin-top:10px">
           <div class="progress amber"><i id="modelBar"></i></div>
@@ -436,6 +436,7 @@ textarea:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px rgba(3
             <i></i><span>Unterlänge</span>
           </div>
           <label class="switch"><input type="checkbox" id="drawTemplate" checked><span>Vorlage anzeigen</span></label>
+          <label class="switch"><input type="checkbox" id="drawPenOnly"><span>Nur Stift (Finger ignorieren)</span></label>
           <span class="badge off" id="drawState">Noch nicht gezeichnet</span>
           <p class="hint" id="drawPenInfo">Stiftdruck wird aufgezeichnet, sobald ein Apple Pencil erkannt wird.</p>
         </div>
@@ -502,7 +503,7 @@ textarea:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px rgba(3
     <div class="modal-head"><h2>Datenschutz &amp; Speicher</h2><button class="btn" data-close>Schließen</button></div>
     <div class="modal-body">
       <h4>Alles bleibt auf deinem Gerät</h4>
-      <p>Entwurf, Undo-Stand, Einstellungen und deine eigene Handschrift liegen ausschließlich im lokalen Browserspeicher (<code>localStorage</code>) dieses Geräts. Es gibt kein Konto, kein Tracking, keine Analyse-Skripte und keinen Server von Tintenwerk. Screenshots, OCR-Text und KI-Verarbeitung verlassen das iPad nicht.</p>
+      <p>Entwurf, Undo-Stand und Einstellungen liegen im lokalen Browserspeicher (<code>localStorage</code>), deine eigene Handschrift zusätzlich in <code>IndexedDB</code> dieses Geräts. Es gibt kein Konto, kein Tracking, keine Analyse-Skripte und keinen Server von Tintenwerk. Screenshots, OCR-Text und KI-Verarbeitung verlassen das iPad nicht.</p>
       <p id="storageInfo" class="hint" style="margin-top:6px"></p>
       <div class="warnbox" style="margin-top:10px"><b>Wichtig für iPadOS:</b> Safari kann lokale Browserdaten bereinigen, wenn eine Website längere Zeit (ca. 7 Tage) nicht genutzt wird. Sichere deine eigene Handschrift deshalb als JSON-Datei (Schritt 2 → Sicherung). Zum Home-Bildschirm hinzugefügte Web-Apps sind davon in der Regel ausgenommen.</div>
 
@@ -859,7 +860,7 @@ TW.INKS = [
 TW.PAPER_COLORS = { weiss: { bg: '#FFFFFF', line: '#D6DCE5', name: 'White' }, creme: { bg: '#FDFBF2', line: '#E5DEC9', name: 'Yellow' } };
 TW.STYLES = {
   klar: { slant: 0, slantJ: 0, sizeJ: 0.012, ptJ: 0.45, track: 15, trackJ: 0.8, xs: 1, cornerR: 0, space: 30, spaceJ: 1 },
-  locker: { slant: 0.2, slantJ: 0.03, sizeJ: 0.05, ptJ: 1.3, track: 12, trackJ: 2.5, xs: 0.93, cornerR: 5, space: 29, spaceJ: 4 },
+  locker: { slant: 0.2, slantJ: 0.03, sizeJ: 0.05, ptJ: 1.3, track: 13.5, trackJ: 2.5, xs: 0.93, cornerR: 5, space: 29, spaceJ: 4 },
   eigen: { slant: 0, slantJ: 0, sizeJ: 0.02, ptJ: 0.3, track: 11, trackJ: 1.2, xs: 1, cornerR: 0, space: 30, spaceJ: 2 }
 };
 TW.DEFAULT_SETTINGS = { style: 'klar', size: 'mittel', ink: '#1A4B8C', paper: 'liniert', paperColor: 'weiss', spacing: 'ref', margin: 12, markFallback: true };
@@ -958,6 +959,11 @@ function classifyLine(raw) {
   const line = raw.replace(/\t/g, '    ').replace(/[   ]/g, ' ');
   if (!line.trim()) return { type: 'blank' };
   let m;
+  if (/^[\s|:+-]+$/.test(line) && line.includes('|')) return { type: 'sep' };      // Markdown-Trennzeile |---|---|
+  if (/\S\s*\|\s*\S/.test(line) && !/^\s*#/.test(line)) {                    // einfache Tabellenzeile: Zellen durch | getrennt
+    const cells = line.replace(/^\s*\|/, '').replace(/\|\s*$/, '').split('|').map(c => c.trim());
+    if (cells.length >= 2 && cells.length <= 6) return { type: 'row', cells };
+  }
   if ((m = /^\s{0,3}(#{1,3})\s+(.*)$/.exec(line))) return { type: 'h', level: m[1].length, text: m[2].replace(/\s+#+\s*$/, '') };
   if ((m = /^(\s*)[-*•]\s+(.*)$/.exec(line))) return { type: 'li', indent: Math.min(3, Math.floor(m[1].length / 2)), text: m[2] };
   if ((m = /^(\s*)(\d{1,3}[.)])\s+(.*)$/.exec(line))) return { type: 'ol', indent: Math.min(3, Math.floor(m[1].length / 2)), label: m[2], text: m[3] };
@@ -1030,8 +1036,8 @@ TW.layout = function (note, settings, own) {
     return x;
   }
   /* Fließtext mit Wortumbruch; firstX = Einzug der ersten Zeile, restX = hängender Einzug */
-  function flow(text, em, wmul, firstX, restX, extraFirst) {
-    const xMax = grid.right;
+  function flow(text, em, wmul, firstX, restX, extraFirst, xMaxOpt) {
+    const xMax = xMaxOpt || grid.right;
     const toks = tokenize(text);
     let line = [], lineW = 0, x0 = firstX, first = true, place = null;
     const flush = () => {
@@ -1082,6 +1088,7 @@ TW.layout = function (note, settings, own) {
   for (let i = 0; i < lines.length; i++) {
     const L = lines[i];
     if (i === skipIdx) continue;
+    if (L.type === 'sep') continue;
     if (L.type === 'blank') { if (prev === 'body') pendingBlank = 1; continue; }
     if (L.type === 'h') {
       const em = E * (L.level === 1 ? 1.32 : L.level === 2 ? 1.2 : 1.1);
@@ -1091,7 +1098,22 @@ TW.layout = function (note, settings, own) {
     }
     const extra = prev === 'title' ? 1 : (prev === 'h' ? 0 : pendingBlank);
     let place = null;
-    if (L.type === 'li') {
+    if (L.type === 'row') {
+      /* Tabellenzeile: Spalten gleich breit, alle Zellen beginnen auf derselben Rasterzeile */
+      const n = L.cells.length, gap = E * 0.9, colW = (grid.right - grid.left) / n;
+      const startPage = page, startLast = lastRow;
+      let first = null, end = null;
+      for (let c = 0; c < n; c++) {
+        if (first) { page = first.page; lastRow = first.row - rowsFor(E) - extra; } else { page = startPage; lastRow = startLast; }
+        const x0 = grid.left + c * colW;
+        const pl = flow(L.cells[c], E, c === 0 ? 1.15 : 1, x0, x0, extra, x0 + colW - (c < n - 1 ? gap : 0));
+        if (!first && pl) first = pl;
+        const pi = pages.indexOf(page);
+        if (pl && (!end || pi > end.pi || (pi === end.pi && lastRow > end.row))) end = { pi, row: lastRow };
+      }
+      if (end) { page = pages[end.pi]; lastRow = end.row; place = first; }
+      else { page = startPage; lastRow = startLast; }
+    } else if (L.type === 'li') {
       const ind = grid.left + L.indent * E * 1.1, tx = ind + E * 1.05, cs = charSeq;
       place = flow(L.text, E, 1, tx, tx, extra);
       if (place) {               // gezeichneter Aufzählungspunkt auf der ersten Textzeile
@@ -1672,7 +1694,25 @@ const SAMPLE = {
 const LS = {
   get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
   set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch (e) { toast('Lokales Speichern nicht möglich (Speicher voll oder gesperrt).'); return false; } },
+  quiet(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch (e) { return false; } },
   del(k) { try { localStorage.removeItem(k); } catch (e) { /* egal */ } }
+};
+/* IndexedDB: großzügigerer Speicher für die eigene Handschrift (localStorage ist auf ca. 5 MB begrenzt) */
+const IDB = {
+  db: null,
+  open() {
+    if (this.db) return this.db;
+    this.db = new Promise((res, rej) => {
+      if (!window.indexedDB) { rej(new Error('IndexedDB nicht verfügbar')); return; }
+      const r = indexedDB.open('tintenwerk', 1);
+      r.onupgradeneeded = () => r.result.createObjectStore('kv');
+      r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
+    });
+    return this.db;
+  },
+  async get(k) { const d = await this.open(); return new Promise((res, rej) => { const q = d.transaction('kv').objectStore('kv').get(k); q.onsuccess = () => res(q.result); q.onerror = () => rej(q.error); }); },
+  async set(k, v) { const d = await this.open(); return new Promise((res, rej) => { const t = d.transaction('kv', 'readwrite'); t.objectStore('kv').put(v, k); t.oncomplete = res; t.onerror = t.onabort = () => rej(t.error); }); },
+  async del(k) { try { const d = await this.open(); await new Promise(res => { const t = d.transaction('kv', 'readwrite'); t.objectStore('kv').delete(k); t.oncomplete = t.onerror = t.onabort = res; }); } catch (e) { /* egal */ } }
 };
 const S = {
   mode: 'import', page: 0, zoom: 'fit', layout: null,
@@ -2080,7 +2120,7 @@ document.addEventListener('paste', e => {
 });
 
 /* Schnittstellen für die weiteren Teile */
-const APP = { $, $$, clamp, esc, K, LS, S, SAMPLE_MARK, toast, confirmDialog, openModal, closeModal, downloadBlob, safeName, setMode, setView, relayout, drawSheet, renderPage, snapshot, setDraft, syncDraftUi, saveSettings, syncZoom, showStaging };
+const APP = { $, $$, clamp, esc, K, LS, IDB, S, SAMPLE_MARK, toast, confirmDialog, openModal, closeModal, downloadBlob, safeName, setMode, setView, relayout, drawSheet, renderPage, snapshot, setDraft, syncDraftUi, saveSettings, syncZoom, showStaging };
 window.TWApp.APP = APP;
 let renderTiles = () => {}, refreshBlattPanel = () => {}, updateWarnings = () => {};
 APP.hook = (name, fn) => { if (name === 'tiles') renderTiles = fn; else if (name === 'blatt') refreshBlattPanel = fn; else if (name === 'warn') updateWarnings = fn; };
@@ -2090,9 +2130,15 @@ APP.hook = (name, fn) => { if (name === 'tiles') renderTiles = fn; else if (name
    ========================================================================== */
 (function () {
 'use strict';
-const A = window.TWApp.APP, { $, $$, clamp, esc, K, LS, S, toast, confirmDialog, openModal, closeModal, downloadBlob, safeName } = A;
+const A = window.TWApp.APP, { $, $$, clamp, esc, K, LS, IDB, S, toast, confirmDialog, openModal, closeModal, downloadBlob, safeName } = A;
 const ALL_CHARS = TW.CHAR_GROUPS.flatMap(g => g.chars);
-const saveOwn = () => LS.set(K.own, S.own);
+/* Eigene Handschrift: IndexedDB ist die Hauptablage, localStorage nur Zusatzkopie (falls klein genug) */
+const saveOwn = () => {
+  const lsOk = LS.quiet(K.own, S.own);
+  if (!lsOk) LS.del(K.own);
+  IDB.set('own', S.own).catch(() => { if (!lsOk) toast('Die Handschrift konnte nicht lokal gespeichert werden. Bitte als JSON sichern!', 6000); });
+  return true;
+};
 const ownCount = () => ALL_CHARS.filter(c => S.own.glyphs[c]).length;
 
 /* ---------- Kacheln ---------- */
@@ -2136,7 +2182,7 @@ $('#btnUseOwn').addEventListener('click', () => {
 
 /* ---------- Zeichenfeld (320 × 320, Apple Pencil) ---------- */
 const PAD = { size: 320, asc: 60, xh: 140, base: 220, desc: 280, unit: 1.6 };
-const D = { ch: 'a', strokes: [], cur: null, pid: null, penSeen: false, dirty: false };
+const D = { ch: 'a', strokes: [], cur: null, pid: null, penSeen: !!LS.get('tintenwerk.stift.v1', false), dirty: false };
 const dCan = $('#drawCanvas'), dGuide = $('#drawGuide');
 function setupPadCanvas(cv) {
   const dpr = Math.min(window.devicePixelRatio || 1, 3);
@@ -2180,9 +2226,14 @@ function padPoint(e) {
   const r = dCan.getBoundingClientRect();
   return { x: clamp((e.clientX - r.left) * PAD.size / r.width, 0, PAD.size), y: clamp((e.clientY - r.top) * PAD.size / r.height, 0, PAD.size), p: e.pointerType === 'pen' ? (e.pressure || 0.5) : 0.5 };
 }
+function penInfo() { $('#drawPenInfo').textContent = $('#drawPenOnly').checked ? 'Apple Pencil erkannt – Stiftdruck wird aufgezeichnet, Finger werden ignoriert.' : 'Stiftdruck wird aufgezeichnet, sobald ein Apple Pencil erkannt wird. Finger zeichnen ohne Druck.'; }
+$('#drawPenOnly').checked = D.penSeen;
+$('#drawPenOnly').addEventListener('change', penInfo);
+penInfo();
 dCan.addEventListener('pointerdown', e => {
-  if (e.pointerType === 'pen') { D.penSeen = true; $('#drawPenInfo').textContent = 'Apple Pencil erkannt – Stiftdruck wird aufgezeichnet. Fingerberührungen werden ignoriert.'; }
-  else if (D.penSeen && e.pointerType === 'touch') return;        // Handballen-Schutz
+  if (e.pointerType === 'pen') { if (!D.penSeen) { D.penSeen = true; LS.quiet('tintenwerk.stift.v1', true); $('#drawPenOnly').checked = true; } penInfo(); }
+  else if (e.pointerType === 'touch' && $('#drawPenOnly').checked && D.penSeen) return;     // Handballen-Schutz: Finger ignorieren
+  if (D.cur && D.pid !== null && e.pointerId !== D.pid) return;                               // zweiter Kontakt während eines Strichs
   if (D.pid !== null) return;
   e.preventDefault();
   D.pid = e.pointerId; try { dCan.setPointerCapture(e.pointerId); } catch (err) { /* egal */ }
@@ -2445,6 +2496,22 @@ function factCheck(orig, ai) {
   const la = orig.trim().length, lb = ai.trim().length;
   return { missing, added, shrink: la ? 1 - lb / la : 0, la, lb };
 }
+/* Eigennamen, Fachbegriffe, Kürzel: groß geschriebene Wörter (nicht am Satzanfang) und Wörter mit Ziffern/Großbuchstaben im Wort */
+function termTokens(s) {
+  const out = new Set(), re = /[A-ZÄÖÜ][A-Za-zÄÖÜäöüß0-9-]{2,}|[A-Za-zÄÖÜäöüß]*[0-9][A-Za-zÄÖÜäöüß0-9]*|[a-zäöüß]+[A-ZÄÖÜ][A-Za-zÄÖÜäöüß]*/g;
+  let m;
+  while ((m = re.exec(s))) {
+    const before = s.slice(0, m.index);
+    if (/^[A-ZÄÖÜ][a-zäöüß-]+$/.test(m[0]) && /(^|[.!?:]\s+|\n[-*#\s\d.)]*)$/.test(before)) continue;      // Satzanfang: nur Groß-/Kleinschreibung, kein Begriff
+    if (/^\d+$/.test(m[0])) continue;                                                                    // reine Zahlen prüft der Zahlen-Wächter
+    out.add(m[0]);
+  }
+  return [...out];
+}
+function termCheck(orig, ai) {
+  const low = ai.toLowerCase();
+  return termTokens(orig).filter(t => { const l = t.toLowerCase(); return !low.includes(l.slice(0, Math.max(4, l.length - 3))); });
+}
 function showFactWarn() {
   const o = $('#cmpOrig').value, a = $('#cmpAi').value, w = $('#cmpWarn');
   $('#cmpLenA').textContent = o.trim().length + ' Zeichen'; $('#cmpLenB').textContent = a.trim().length + ' Zeichen';
@@ -2452,6 +2519,8 @@ function showFactWarn() {
   const f = factCheck(o, a), msgs = [];
   if (f.missing.length) msgs.push(`<b>Fehlende oder veränderte Zahlen/Daten:</b> ${f.missing.map(esc).join(' · ')}`);
   if (f.added.length) msgs.push(`<b>Neue Zahlen, die im Original nicht vorkommen:</b> ${f.added.map(esc).join(' · ')}`);
+  const lostTerms = termCheck(o, a);
+  if (lostTerms.length) msgs.push(`<b>Namen/Fachbegriffe nicht mehr im Text:</b> ${lostTerms.slice(0, 12).map(esc).join(' · ')}${lostTerms.length > 12 ? ' …' : ''}`);
   if (f.shrink > 0.2) msgs.push(`<b>Text ist um ${Math.round(f.shrink * 100)} % kürzer</b> (${f.la} → ${f.lb} Zeichen) – möglicherweise wurde Inhalt weggelassen.`);
   if (f.shrink < -0.5) msgs.push(`<b>Text ist um ${Math.round(-f.shrink * 100)} % länger</b> – möglicherweise wurde Inhalt hinzugefügt.`);
   w.hidden = !msgs.length;
@@ -2496,7 +2565,7 @@ $('#cmpDiscard').addEventListener('click', () => { if (AI.running && AI.stopper)
 $('#cmpTake').addEventListener('click', async () => {
   const ai = $('#cmpAi').value.trim(); if (!ai || AI.running) return;
   const f = factCheck($('#cmpOrig').value, ai);
-  if ((f.missing.length || f.added.length || f.shrink > 0.2) && !(await confirmDialog('Trotz Warnung übernehmen?', 'Der Zahlen-Wächter meldet Abweichungen zwischen Original und KI-Fassung. Du kannst die Übernahme danach mit dem Rückgängig-Pfeil zurücknehmen.', 'Trotzdem übernehmen'))) return;
+  if ((f.missing.length || f.added.length || f.shrink > 0.2 || termCheck($('#cmpOrig').value, ai).length) && !(await confirmDialog('Trotz Warnung übernehmen?', 'Der Fakten-Wächter meldet Abweichungen zwischen Original und KI-Fassung. Du kannst die Übernahme danach mit dem Rückgängig-Pfeil zurücknehmen.', 'Trotzdem übernehmen'))) return;
   A.snapshot('KI-Fassung übernommen');
   A.setDraft({ title: S.draft.title, text: ai, isSample: false, imports: S.draft.imports || 0 });
   closeModal('#cmpModal'); toast('KI-Fassung übernommen.');
@@ -2610,6 +2679,7 @@ $('#btnSelfTest').addEventListener('click', async e => {
   toast(bad ? `${bad} Prüfung(en) fehlgeschlagen.` : 'Selbsttest bestanden.');
 });
 window.TWApp.selfTest = selfTest;
+window.TWApp.termCheck = termCheck;
 
 /* ---------- Datenschutz & Speicher ---------- */
 async function refreshSettingsModal() {
@@ -2631,7 +2701,7 @@ $('#delDraft').addEventListener('click', async () => {
 });
 $('#delOwn').addEventListener('click', async () => {
   if (!(await confirmDialog('Eigene Handschrift zurücksetzen?', 'Alle gezeichneten Zeichen werden gelöscht. Tipp: vorher als JSON sichern.', 'Zurücksetzen', true))) return;
-  S.own = { v: 1, glyphs: {} }; LS.del(K.own);
+  S.own = { v: 1, glyphs: {} }; LS.del(K.own); IDB.del('own');
   if (S.settings.style === 'eigen') { S.settings.style = 'klar'; A.saveSettings(); }
   renderTiles(); refreshBlattPanel(); A.relayout(true); toast('Eigene Handschrift zurückgesetzt.'); refreshSettingsModal();
 });
@@ -2645,6 +2715,7 @@ $('#delAll').addEventListener('click', async () => {
   if (!(await confirmDialog('Komplett-Reset?', 'Entwurf, Undo-Stand, Einstellungen, eigene Handschrift und der KI-Modell-Cache werden gelöscht. Das lässt sich nicht rückgängig machen.', 'Alles löschen', true))) return;
   for (const k of Object.values(K)) LS.del(k);
   await clearModelCache();
+  try { const d = await IDB.open().catch(() => null); if (d) d.close(); await new Promise(r => { const q = indexedDB.deleteDatabase('tintenwerk'); q.onsuccess = q.onerror = q.onblocked = r; }); } catch (e) { /* egal */ }
   location.reload();
 });
 
@@ -2666,6 +2737,10 @@ function init() {
   refreshBlattPanel();
   A.relayout(true);
   detectGpu();
+  IDB.get('own').then(o => {
+    if (o && o.glyphs && Object.keys(o.glyphs).length >= Object.keys(S.own.glyphs).length) { S.own = o; renderTiles(); refreshBlattPanel(); A.relayout(true); }
+    else if (Object.keys(S.own.glyphs).length) IDB.set('own', S.own).catch(() => {});        // ältere Kopie aus localStorage übernehmen
+  }).catch(() => { /* ohne IndexedDB: localStorage bleibt in Gebrauch */ });
   requestAnimationFrame(() => A.drawSheet());
   setTimeout(() => A.drawSheet(), 300);
   window.addEventListener('pagehide', () => { try { localStorage.setItem(K.draft, JSON.stringify(S.draft)); } catch (e) { /* egal */ } });
