@@ -17,7 +17,17 @@ TW.STYLES = {
   locker: { slant: 0.2, slantJ: 0.03, sizeJ: 0.05, ptJ: 1.3, track: 13.5, trackJ: 2.5, xs: 0.93, cornerR: 5, space: 29, spaceJ: 4 },
   eigen: { slant: 0, slantJ: 0, sizeJ: 0.02, ptJ: 0.3, track: 11, trackJ: 1.2, xs: 1, cornerR: 0, space: 30, spaceJ: 2 }
 };
-TW.DEFAULT_SETTINGS = { style: 'klar', size: 'mittel', ink: '#1A4B8C', paper: 'liniert', paperColor: 'weiss', spacing: 'ref', margin: 12, markFallback: true };
+TW.DEFAULT_SETTINGS = { style: 'klar', size: 'mittel', ink: '#1A4B8C', paper: 'liniert', paperColor: 'weiss', spacing: 'ref', margin: 12, markFallback: true, autoSup: true };
+
+/* Typografie: einfache Hochzahlen. "x^2", "x^-1", "10^6" immer; "x2"/"cm3" nur bei einzelnen Kleinbuchstaben und Längeneinheiten
+   (nicht bei CO2, H2O, A4, x20 oder x2,5). */
+const SUP = { 0: '⁰', 1: '¹', 2: '²', 3: '³', 4: '⁴', 5: '⁵', 6: '⁶', 7: '⁷', 8: '⁸', 9: '⁹', '-': '⁻', '+': '⁺' };
+TW.typo = function (text) {
+  return String(text || '')
+    .replace(/\^\(?([-+]?\d{1,4})\)?/g, (m, d) => d.split('').map(c => SUP[c]).join(''))
+    .replace(/(^|[^A-Za-zÄÖÜäöüß0-9^_])(mm|cm|dm|km)([23])(?![A-Za-zÄÖÜäöüß0-9]|[.,]\d)/g, (m, a, u, d) => a + u + SUP[d])
+    .replace(/(^|[^A-Za-zÄÖÜäöüß0-9^_])([a-z])([23])(?![A-Za-zÄÖÜäöüß0-9]|[.,]\d)/g, (m, a, v, d) => a + v + SUP[d]);
+};
 
 TW.hexRgb = function (hex) {
   const n = parseInt(hex.slice(1), 16);
@@ -228,8 +238,9 @@ TW.layout = function (note, settings, own) {
     return place;
   }
 
-  const title = (note.title || '').trim();
-  const lines = (note.text || '').replace(/\r\n?/g, '\n').split('\n').map(classifyLine);
+  const sup = settings.autoSup !== false ? TW.typo : (x => x);
+  const title = sup((note.title || '').trim());
+  const lines = sup(note.text || '').replace(/\r\n?/g, '\n').split('\n').map(classifyLine);
   /* Keine doppelte Überschrift: erste sinnvolle Zeile == Titel -> nur einmal (als Titel) setzen.
      Der Rohtext im Editor bleibt dabei unverändert. */
   let skipIdx = -1;
