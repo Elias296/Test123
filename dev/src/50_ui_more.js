@@ -312,7 +312,7 @@ const AI = {
 if (!AI.models[AI.sel]) AI.sel = 'schnell';
 window.TWApp.AI = AI;
 const aiMb = () => AI.f16 ? AI.models[AI.sel].mbF16 : AI.models[AI.sel].mbQ4;
-const loadLabel = () => `Lokales KI-Modell laden (ca. ${aiMb() >= 1000 ? (aiMb() / 1000).toFixed(1).replace('.', ',') + ' GB' : aiMb() + ' MB'}, geschätzt)`;
+const loadLabel = () => `Tizian laden (lokales KI-Modell, ca. ${aiMb() >= 1000 ? (aiMb() / 1000).toFixed(1).replace('.', ',') + ' GB' : aiMb() + ' MB'}, geschätzt)`;
 const aiChanged = () => document.dispatchEvent(new CustomEvent('tw-ai-state'));
 $('#aiModel').innerHTML = Object.entries(AI.models).map(([k, m]) => `<option value="${k}">${esc(m.name)}</option>`).join('');
 $('#aiModel').value = AI.sel;
@@ -372,7 +372,7 @@ function aiLog(m) {
   $('#aiLogText').textContent = AI.log.slice(-14).join('\n');
 }
 AI.generate = (messages, opts, onTok) => new Promise((res, rej) => {
-  if (!AI.worker || AI.state !== 'ready') { rej(new Error('Das KI-Modell ist nicht geladen.')); return; }
+  if (!AI.worker || AI.state !== 'ready') { rej(new Error('Tizian ist nicht geladen.')); return; }
   const id = ++AI.seq; AI.pending.set(id, { res, rej, onTok });
   AI.worker.postMessage({ t: 'gen', id, messages, opts });
 });
@@ -399,7 +399,7 @@ function onWorkerMessage(m) {
   } else if (m.t === 'ready') {
     clearInterval(AI.tick); aiLog('Modell bereit');
     AI.state = 'ready'; AI.loaded = AI.sel; $('#aiModel').disabled = false; $('#btnCancelModel').hidden = true;
-    $('#modelBar').style.width = '100%'; $('#modelMsg').textContent = 'Modell geladen und bereit (läuft lokal über WebGPU im Hintergrund).';
+    $('#modelBar').style.width = '100%'; $('#modelMsg').textContent = 'Tizian ist bereit (läuft lokal über WebGPU im Hintergrund).';
     $('#btnLoadModel').hidden = true; $('#btnRewrite').hidden = false; aiChanged();
   } else if (m.t === 'tok') { const p = AI.pending.get(m.id); if (p && p.onTok) p.onTok(m.x); }
   else if (m.t === 'done') { const p = AI.pending.get(m.id); if (p) { AI.pending.delete(m.id); p.res({ text: m.text, interrupted: m.interrupted }); } }
@@ -412,7 +412,7 @@ function loadFailed(msg) {
   aiLog('FEHLER: ' + msg); aiKill('Laden fehlgeschlagen'); idleUi();
   aiError(/fetch|network|load failed|import|Failed to/i.test(msg) ? 'Das Modell konnte nicht geladen werden (Netzwerk oder CDN nicht erreichbar). Bitte Verbindung prüfen und erneut versuchen. Details: ' + msg
     : /memory|allocation|out of|device lost|OOM/i.test(msg) ? 'Zu wenig freier Speicher für das Modell. Bitte andere Tabs/Apps schließen, „Schnell“ wählen oder den Kompatibilitätsmodus probieren. Details: ' + msg
-    : 'Das KI-Modell konnte nicht gestartet werden. Unter „Probleme beim Laden?“ stehen Optionen und das Protokoll. Details: ' + msg);
+    : 'Tizian konnte nicht gestartet werden. Unter „Probleme beim Laden?“ stehen Optionen und das Protokoll. Details: ' + msg);
   $('#aiHelp').open = true;
 }
 function updateLoadMsg() {
@@ -428,7 +428,7 @@ function updateLoadMsg() {
 }
 $('#btnLoadModel').addEventListener('click', async () => {
   if (AI.state === 'loading' || AI.state === 'ready') return;
-  if (!(await confirmDialog('Lokales KI-Modell laden?', `Es werden ca. ${aiMb()} MB (geschätzt) von huggingface.co heruntergeladen und im Browser-Cache dieses Geräts gespeichert (am besten im WLAN). Die Verarbeitung deiner Texte bleibt danach vollständig lokal.`, 'Jetzt laden'))) return;
+  if (!(await confirmDialog('Tizian laden?', `Tizian ist ein lokales KI-Modell. Es werden ca. ${aiMb()} MB (geschätzt) von huggingface.co heruntergeladen und im Browser-Cache dieses Geräts gespeichert (am besten im WLAN). Die Verarbeitung deiner Texte bleibt danach vollständig lokal.`, 'Jetzt laden'))) return;
   AI.state = 'loading'; aiError(''); AI.files = new Map(); AI.log = []; AI.t0 = performance.now(); AI.t100 = 0;
   $('#aiModel').disabled = true; $('#btnLoadModel').hidden = true; $('#btnCancelModel').hidden = false;
   $('#modelProg').hidden = false; $('#modelBar').style.width = '0%'; $('#modelMsg').textContent = 'Transformers.js wird im Hintergrund geladen (cdn.jsdelivr.net) …';
@@ -446,7 +446,7 @@ $('#btnLoadModel').addEventListener('click', async () => {
   } catch (e) { loadFailed('Web-Worker nicht verfügbar: ' + ((e && e.message) || e)); }
 });
 $('#btnCancelModel').addEventListener('click', () => { aiLog('Vom Nutzer abgebrochen'); aiKill('abgebrochen'); idleUi(); toast('Laden abgebrochen. Der Speicher wird freigegeben.'); });
-const SYS_PROMPT = 'Du bist ein sorgfältiger Schreibassistent für Lernnotizen. Formuliere den Abschnitt des Nutzers flüssiger, natürlicher und persönlicher – so, als hätte ihn eine Studentin oder ein Student in eigenen Worten aufgeschrieben. Regeln: 1. Behalte ALLE Fakten, Zahlen, Daten, Einheiten, Namen, Einschränkungen und Fachbegriffe exakt bei. 2. Erfinde nichts hinzu und lasse nichts weg. 3. Behalte die Sprache des Abschnitts sowie Listenpunkte (Zeilen mit "- " oder Nummern) bei. 4. Gib ausschließlich den umformulierten Abschnitt aus – ohne Einleitung, Erklärung oder Anführungszeichen.';
+const SYS_PROMPT = 'Du heißt Tizian und bist ein sorgfältiger Schreibassistent für Lernnotizen. Formuliere den Abschnitt des Nutzers flüssiger, natürlicher und persönlicher – so, als hätte ihn eine Studentin oder ein Student in eigenen Worten aufgeschrieben. Regeln: 1. Behalte ALLE Fakten, Zahlen, Daten, Einheiten, Namen, Einschränkungen und Fachbegriffe exakt bei. 2. Erfinde nichts hinzu und lasse nichts weg. 3. Behalte die Sprache des Abschnitts sowie Listenpunkte (Zeilen mit "- " oder Nummern) bei. 4. Gib ausschließlich den umformulierten Abschnitt aus – ohne Einleitung, Erklärung oder Anführungszeichen.';
 function chunkText(text) {         // Absatz-Chunking; Überschriften und sehr kurze Blöcke bleiben unverändert
   const blocks = text.replace(/\r\n?/g, '\n').split(/\n{2,}/), out = [];
   let buf = [];
@@ -544,9 +544,9 @@ $('#cmpTake').addEventListener('click', async () => {
   const ai = $('#cmpAi').value.trim(); if (!ai || AI.running) return;
   const f = factCheck($('#cmpOrig').value, ai);
   if ((f.missing.length || f.added.length || f.shrink > 0.2 || termCheck($('#cmpOrig').value, ai).length) && !(await confirmDialog('Trotz Warnung übernehmen?', 'Der Fakten-Wächter meldet Abweichungen zwischen Original und KI-Fassung. Du kannst die Übernahme danach mit dem Rückgängig-Pfeil zurücknehmen.', 'Trotzdem übernehmen'))) return;
-  A.snapshot('KI-Fassung übernommen');
+  A.snapshot('Tizians Fassung übernommen');
   A.setDraft({ title: S.draft.title, text: ai, isSample: false, imports: S.draft.imports || 0 });
-  closeModal('#cmpModal'); toast('KI-Fassung übernommen.');
+  closeModal('#cmpModal'); toast('Tizians Fassung übernommen.');
 });
 
 /* ---------- Export ---------- */

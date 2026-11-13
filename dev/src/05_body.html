@@ -82,13 +82,13 @@
       </div>
 
       <div class="card">
-        <h3>Lokale KI <span class="hint" style="font-weight:600">· Natürlicher formulieren</span></h3>
+        <h3>Tizian <span class="hint" style="font-weight:600">· lokale KI</span></h3>
         <div class="row" style="margin:6px 0 10px"><span class="badge off" id="gpuBadge"><i></i>WebGPU wird geprüft …</span></div>
-        <p class="sub">Formuliert den Entwurf flüssiger und persönlicher – direkt auf dem Gerät. Fakten, Zahlen, Namen und Fachbegriffe sollen erhalten bleiben; ein Fakten-Wächter prüft Zahlen, Namen und Fachbegriffe. Die KI ist optional: Editor, Handschrift und Export funktionieren auch ohne sie.</p>
+        <p class="sub">Tizian ist die lokale KI von Tintenwerk und läuft direkt auf dem Gerät. Sie formuliert Entwürfe flüssiger und persönlicher und löst Aufgaben. Fakten, Zahlen, Namen und Fachbegriffe sollen erhalten bleiben; ein Fakten-Wächter prüft Zahlen, Namen und Fachbegriffe. Die KI ist optional: Editor, Handschrift und Export funktionieren auch ohne sie.</p>
         <label class="lbl" for="aiModel" style="margin-top:0">Modell</label>
         <select id="aiModel" class="field" aria-label="KI-Modell"></select>
         <p class="hint" style="margin:6px 0 10px">„Besser“ löst Aufgaben deutlich zuverlässiger, braucht aber mehr Speicher und Download. Größenangaben sind geschätzt.</p>
-        <button class="btn btn-block" id="btnLoadModel" disabled>Lokales KI-Modell laden</button>
+        <button class="btn btn-block" id="btnLoadModel" disabled>Tizian laden</button>
         <div id="modelProg" hidden style="margin-top:10px">
           <div class="progress amber"><i id="modelBar"></i></div>
           <p class="hint" id="modelMsg" style="margin-top:6px">Download startet …</p>
@@ -101,23 +101,23 @@
           <pre id="aiLogText" class="hint" style="white-space:pre-wrap;word-break:break-word;background:#F6F4EF;border-radius:10px;padding:8px;margin:6px 0 0;font-size:11.5px;min-height:20px"></pre>
         </details>
         <div class="warnbox" id="aiError" hidden style="margin-top:10px"></div>
-        <button class="btn btn-amber btn-block" id="btnRewrite" hidden style="margin-top:10px">Entwurf natürlicher formulieren</button>
+        <button class="btn btn-amber btn-block" id="btnRewrite" hidden style="margin-top:10px">Tizian: Entwurf natürlicher formulieren</button>
         <p class="hint" style="margin-top:8px">Kein automatischer Download. Tintenwerk verspricht keine Umgehung von KI-Detektoren – es geht um bessere, eigene Lernnotizen.</p>
       </div>
 
       <div class="card" id="solveCard">
-        <h3>Aufgaben lösen <span class="hint" style="font-weight:600">· Hausaufgaben-Helfer</span></h3>
-        <p class="sub">Buchseite fotografieren oder als Screenshot senden: Tintenwerk erkennt die Aufgaben, löst sie mit der lokalen KI und schreibt die Lösungen als Handschrift aufs Blatt. Einfache Rechenzeilen (z. B. <b>345 + 678 =</b>) rechnet ein exakter Taschenrechner statt der KI.</p>
+        <h3>Tizian löst Aufgaben <span class="hint" style="font-weight:600">· Hausaufgaben-Helfer</span></h3>
+        <p class="sub">Buchseite fotografieren oder als Screenshot senden: Tintenwerk erkennt die Aufgaben, Tizian löst sie lokal auf dem Gerät und schreibt die Lösungen als Handschrift aufs Blatt. Einfache Rechenzeilen (z. B. <b>345 + 678 =</b>) rechnet ein exakter Taschenrechner statt Tizian.</p>
         <div class="row" style="align-items:flex-end">
-          <div class="grow"><label class="lbl" for="stuName" style="margin-top:0">Für</label><input class="field" id="stuName" type="text" maxlength="40" autocomplete="off" spellcheck="false"></div>
+          <div class="grow"><label class="lbl" for="stuName" style="margin-top:0">Name (optional)</label><input class="field" id="stuName" type="text" maxlength="40" autocomplete="off" spellcheck="false" placeholder="für die Überschrift"></div>
           <div style="width:110px"><label class="lbl" for="stuGrade" style="margin-top:0">Klasse</label><select class="field" id="stuGrade"></select></div>
         </div>
         <label class="switch"><input type="checkbox" id="stuWork"><span>Rechenweg zeigen</span></label>
         <input type="file" id="solveFile" accept="image/*" multiple hidden>
         <button class="btn btn-amber btn-block" id="btnSolvePages">Buchseite(n) senden &amp; lösen</button>
         <button class="btn btn-block" id="btnSolveEditor" style="margin-top:8px">Aufgaben aus dem Notiztext lösen</button>
-        <p class="hint" id="solveHint" style="margin-top:8px">Zuerst oben ein KI-Modell laden.</p>
-        <p class="hint" style="margin-top:6px">Grenzen: Texterkennung statt Bildverständnis – Zeichnungen, Diagramme, handschriftliche Einträge und Formeln werden nicht verstanden. Kleine lokale Modelle machen Fehler, besonders in Mathe. Bitte Lösungen prüfen, bevor sie abgegeben werden.</p>
+        <p class="hint" id="solveHint" style="margin-top:8px">Zuerst oben Tizian laden.</p>
+        <p class="hint" style="margin-top:6px">Grenzen: Texterkennung statt Bildverständnis – Zeichnungen, Diagramme, handschriftliche Einträge und Formeln werden nicht verstanden. Tizian ist ein kleines lokales Modell und macht Fehler, besonders in Mathe. Bitte Lösungen prüfen, bevor sie abgegeben werden.</p>
       </div>
     </section>
 
@@ -276,18 +276,18 @@
 <div class="modal" id="cmpModal" hidden>
   <div class="modal-card wide">
     <div class="modal-head">
-      <h2>KI-Vorschlag prüfen <small id="cmpProgress"></small></h2>
+      <h2>Tizians Vorschlag prüfen <small id="cmpProgress"></small></h2>
       <button class="btn btn-danger" id="cmpCancel" hidden>Generierung abbrechen</button>
     </div>
     <div class="warnbox cmp-warn" id="cmpWarn" hidden></div>
     <div class="cmp">
       <div><h4><span>Original (Entwurf)</span><span id="cmpLenA"></span></h4><textarea id="cmpOrig" readonly spellcheck="false"></textarea></div>
-      <div><h4><span>KI-Fassung (bearbeitbar)</span><span id="cmpLenB"></span></h4><textarea id="cmpAi" spellcheck="false"></textarea></div>
+      <div><h4><span>Tizians Fassung (bearbeitbar)</span><span id="cmpLenB"></span></h4><textarea id="cmpAi" spellcheck="false"></textarea></div>
     </div>
     <div class="modal-foot">
       <span class="hint grow">Der Entwurf wird erst durch „KI-Fassung übernehmen“ ersetzt. Bitte Fakten selbst gegenlesen.</span>
       <button class="btn" id="cmpDiscard">Verwerfen</button>
-      <button class="btn btn-primary" id="cmpTake" disabled>KI-Fassung übernehmen</button>
+      <button class="btn btn-primary" id="cmpTake" disabled>Tizians Fassung übernehmen</button>
     </div>
   </div>
 </div>
@@ -296,7 +296,7 @@
 <div class="modal" id="solveModal" hidden>
   <div class="modal-card wide">
     <div class="modal-head">
-      <h2>Aufgaben lösen <small id="solveProgress"></small></h2>
+      <h2>Tizian löst Aufgaben <small id="solveProgress"></small></h2>
       <button class="btn btn-danger" id="solveCancel" hidden>Abbrechen</button>
     </div>
     <div class="warnbox cmp-warn" id="solveWarn" hidden></div>

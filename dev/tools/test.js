@@ -31,7 +31,7 @@ const TW = require('./t_engine.js');
   eq(S.splitTasks('Aufgabe 1: Berechne.\nAufgabe 2: Zeichne.').tasks.map(t => t.label), ['1', '2']);
   eq(S.splitTasks('Erster Absatz.\n\nZweiter Absatz.').tasks.length, 2); eq(S.splitTasks('Nur ein Text').tasks.length, 1); eq(S.splitTasks('').tasks.length, 0);
   eq(S.cleanAnswer('## Lösung\n$\\frac{3}{4} \\cdot 2 = 1,5$\n* Punkt **fett**'), 'Lösung\n3/4 · 2 = 1,5\n- Punkt fett'); assert(S.isUnsolvable('[Nicht lösbar: Bild fehlt]'));
-  assert(S.buildSystem({ name: 'Tizian', grade: '7' }).includes('Tizian (Klasse 7)')); assert(!/ sein | ihr | er /.test(S.buildSystem({ name: 'Tizian' })), 'keine Pronomen');
+  assert(S.buildSystem({ name: 'Mia', grade: '7' }).includes('für Mia (Klasse 7)')); assert(S.buildSystem({}).startsWith('Du heißt Tizian')); assert(!/ sein | ihr | er /.test(S.buildSystem({ name: 'Mia' })), 'keine Pronomen');
   eq(S.assemble([{ label: '1', text: 'A' }, { label: '2', text: 'a) x\nb) y' }]), '**1.** A\n\n**2.** \na) x\nb) y');
   console.log('OK Aufgaben-Kern');
 })();
