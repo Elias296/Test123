@@ -101,9 +101,10 @@
         <h3>Zeichenstudio</h3>
         <p class="sub">Tippe ein Zeichen an und schreibe es mit dem Apple Pencil. Gespeichert werden echte Stiftpfade – relativ zur Grundlinie.</p>
         <div class="row"><div class="progress grow"><i id="ownBar" style="background:var(--ok)"></i></div><span class="hint" id="ownCount">0 von 85</span></div>
-        <div class="row" style="margin-top:10px">
+        <button class="btn btn-primary btn-block" id="btnDrawText" style="margin-top:10px">Fehlende Zeichen aus meinem Text</button>
+        <div class="row" style="margin-top:8px">
+          <button class="btn grow" id="btnDrawNext">Nächstes fehlendes Zeichen</button>
           <button class="btn grow" id="btnUseOwn">Als Schriftstil verwenden</button>
-          <button class="btn btn-primary grow" id="btnDrawNext">Nächstes fehlendes Zeichen</button>
         </div>
         <div id="tileGroups"></div>
       </div>
@@ -170,7 +171,7 @@
 
   <section class="stage" id="stage">
     <div class="stage-top">
-      <div class="seg small" id="zoomSeg"><button data-zoom="fit" class="on">Anpassen</button><button data-zoom="1">100 %</button><button data-zoom="1.250">125 %</button></div>
+      <div class="seg small" id="zoomSeg" title="Mit zwei Fingern zoomen"><button data-zoom="fit" class="on">Anpassen</button><button data-zoom="1">100 %</button><button data-zoom="1.250">125 %</button></div>
       <span class="chip glass" id="statsChip"></span>
     </div>
     <div class="sheet-scroll" id="sheetScroll"><div class="sheet" id="sheet"><canvas id="sheetCanvas" aria-label="Vorschau des Goodnotes-Blattes"></canvas></div></div>
@@ -273,8 +274,8 @@
       <p id="exportSummary" style="margin-bottom:10px"></p>
       <div id="exportWarn"></div>
       <div class="stack" style="margin-top:10px">
-        <button class="btn btn-primary btn-block" id="exGn">Native .goodnotes-Datei erzeugen</button>
-        <button class="btn btn-block" id="exPdf">Als Standard-PDF exportieren</button>
+        <button class="btn btn-primary btn-block" id="exGn">.goodnotes neu erzeugen</button>
+        <button class="btn btn-block" id="exPdf">Stattdessen als Standard-PDF exportieren</button>
       </div>
       <div id="exportResult" hidden style="margin-top:14px">
         <div class="infobox" id="exportResultMsg"></div>

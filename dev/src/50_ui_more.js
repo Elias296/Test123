@@ -41,12 +41,21 @@ function renderTiles() {
   host.innerHTML = html;
   const n = ownCount();
   $('#ownCount').textContent = `${n} von ${ALL_CHARS.length}`;
+  updateNeeded();
   $('#ownBar').style.width = (n / ALL_CHARS.length * 100) + '%';
   $('#ownStyleHint').textContent = n ? `${n} von ${ALL_CHARS.length} Zeichen gezeichnet – fehlende werden ergänzt` : 'Noch keine Zeichen gezeichnet';
 }
 A.hook('tiles', renderTiles);
-$('#tileGroups').addEventListener('click', e => { const t = e.target.closest('.tile'); if (t) openDraw(t.dataset.ch); });
-$('#btnDrawNext').addEventListener('click', () => { const c = ALL_CHARS.find(x => !S.own.glyphs[x]); if (c) openDraw(c); else toast('Alle Zeichen sind bereits gezeichnet.'); });
+$('#tileGroups').addEventListener('click', e => { const t = e.target.closest('.tile'); if (t) openDraw(t.dataset.ch, null); });
+/* Zeichen, die im aktuellen Text vorkommen, aber noch nicht gezeichnet sind – häufigste zuerst */
+function neededChars() {
+  const cnt = new Map();
+  for (let ch of S.draft.title + '\n' + S.draft.text) { ch = TW.CHAR_ALIAS[ch] || ch; if (ALL_CHARS.includes(ch) && !S.own.glyphs[ch]) cnt.set(ch, (cnt.get(ch) || 0) + 1); }
+  return [...cnt.entries()].sort((a, b) => b[1] - a[1]).map(x => x[0]);
+}
+function updateNeeded() { const n = neededChars().length; const b = $('#btnDrawText'); b.textContent = n ? `Fehlende Zeichen aus meinem Text (${n})` : 'Alle Zeichen deines Textes sind gezeichnet'; b.disabled = !n; }
+$('#btnDrawText').addEventListener('click', () => { const q = neededChars(); if (q.length) openDraw(q[0], q); });
+$('#btnDrawNext').addEventListener('click', () => { const c = ALL_CHARS.find(x => !S.own.glyphs[x]); if (c) openDraw(c, null); else toast('Alle Zeichen sind bereits gezeichnet.'); });
 $('#btnUseOwn').addEventListener('click', () => {
   if (!ownCount()) { toast('Zeichne zuerst mindestens ein Zeichen.'); return; }
   S.settings.style = 'eigen'; A.saveSettings(); A.relayout(true); refreshBlattPanel();
@@ -55,7 +64,7 @@ $('#btnUseOwn').addEventListener('click', () => {
 
 /* ---------- Zeichenfeld (320 × 320, Apple Pencil) ---------- */
 const PAD = { size: 320, asc: 60, xh: 140, base: 220, desc: 280, unit: 1.6 };
-const D = { ch: 'a', strokes: [], cur: null, pid: null, penSeen: !!LS.get('tintenwerk.stift.v1', false), dirty: false };
+const D = { queue: null, ch: 'a', strokes: [], cur: null, pid: null, penSeen: !!LS.get('tintenwerk.stift.v1', false), dirty: false };
 const dCan = $('#drawCanvas'), dGuide = $('#drawGuide');
 function setupPadCanvas(cv) {
   const dpr = Math.min(window.devicePixelRatio || 1, 3);
@@ -190,13 +199,14 @@ function drawState() {
   $('#drawDelete').disabled = !saved;
   $('#drawSave').disabled = $('#drawSaveNext').disabled = !(D.dirty && D.strokes.length);
 }
-function openDraw(ch) {
-  D.ch = ch; D.cur = null; D.pid = null; D.dirty = false;
+function openDraw(ch, queue) {
+  D.ch = ch; D.cur = null; D.pid = null; D.dirty = false; if (queue !== undefined) D.queue = queue;
   const g = S.own.glyphs[ch];
   D.strokes = g ? glyphToPad(g) : [];
   $('#drawChar').textContent = ch;
   const idx = ALL_CHARS.indexOf(ch);
-  $('#drawPos').textContent = `„${ch}“ · ${idx + 1} von ${ALL_CHARS.length}`;
+  if (D.queue) { const k = D.queue.indexOf(ch); $('#drawPos').textContent = `„${ch}“ · ${k + 1} von ${D.queue.length} aus deinem Text`; }
+  else $('#drawPos').textContent = `„${ch}“ · ${idx + 1} von ${ALL_CHARS.length}`;
   openModal('#drawModal'); drawGuides(); paintStrokes(); drawState();
 }
 function saveDrawing() {
@@ -216,9 +226,11 @@ $('#drawDelete').addEventListener('click', async () => {
 $('#drawSave').addEventListener('click', () => { if (saveDrawing()) toast(`„${D.ch}“ gespeichert.`); });
 $('#drawSaveNext').addEventListener('click', () => {
   if (!saveDrawing()) return;
-  const i = ALL_CHARS.indexOf(D.ch);
-  const next = ALL_CHARS.slice(i + 1).concat(ALL_CHARS.slice(0, i)).find(c => !S.own.glyphs[c]);
-  if (next) openDraw(next); else { closeModal('#drawModal'); toast('Alle Zeichen sind gezeichnet.'); }
+  let next;
+  if (D.queue) next = D.queue.slice(D.queue.indexOf(D.ch) + 1).concat(D.queue).find(c => !S.own.glyphs[c]);
+  else { const i = ALL_CHARS.indexOf(D.ch); next = ALL_CHARS.slice(i + 1).concat(ALL_CHARS.slice(0, i)).find(c => !S.own.glyphs[c]); }
+  if (next) openDraw(next);
+  else { closeModal('#drawModal'); toast(D.queue ? 'Alle Zeichen deines Textes sind gezeichnet. Jetzt „Als Schriftstil verwenden“ tippen.' : 'Alle Zeichen sind gezeichnet.', 5000); }
 });
 $('#drawCancel').addEventListener('click', async () => {
   if (D.dirty && D.strokes.length && !(await confirmDialog('Zeichnung verwerfen?', 'Die Zeichnung wurde noch nicht gespeichert.', 'Verwerfen', true))) return;
@@ -504,7 +516,10 @@ async function exportPdf(btn) {
   } catch (e) { toast('PDF-Export fehlgeschlagen: ' + ((e && e.message) || e), 6000); }
   finally { btn.disabled = false; btn.innerHTML = label; }
 }
-$('#btnExport').addEventListener('click', openExport);
+$('#btnExport').addEventListener('click', () => {      // ein Tap: Fenster öffnen und .goodnotes direkt erzeugen (PDF bleibt im Fenster wählbar)
+  openExport();
+  if (S.layout.stats.strokes > 0) exportGoodnotes($('#exGn'));
+});
 $('#exGn').addEventListener('click', e => exportGoodnotes(e.currentTarget));
 $('#exPdf').addEventListener('click', e => exportPdf(e.currentTarget));
 $('#btnExportGn').addEventListener('click', e => { openExport(); exportGoodnotes(e.currentTarget); });

@@ -157,6 +157,41 @@ $('#zoomSeg').addEventListener('click', e => {
   const b = e.target.closest('button'); if (!b) return;
   S.zoom = b.dataset.zoom; saveUi(); syncZoom(); drawSheet();
 });
+/* Zwei-Finger-Zoom (Touch) und Strg+Mausrad/Trackpad-Pinch; Verschieben läuft über natives Scrollen */
+(function () {
+  const sc = $('#sheetScroll'); let p0 = null, raf = 0;
+  const dist = t => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+  function zoomTo(scale, fx, fy) {
+    const old = sheetScale(), next = clamp(scale, 0.35, 4), r = next / old;
+    if (Math.abs(r - 1) < 0.002) return;
+    const px = sc.scrollLeft + fx, py = sc.scrollTop + fy;
+    S.zoom = String(Math.round(next * 72 / 96 * 1000) / 1000);
+    syncZoom();
+    cancelAnimationFrame(raf);
+    raf = requestAnimationFrame(() => { drawSheet(); sc.scrollLeft = px * r - fx; sc.scrollTop = py * r - fy; });
+  }
+  sc.addEventListener('touchstart', e => {
+    if (e.touches.length === 2) { const b = sc.getBoundingClientRect(); p0 = { d: dist(e.touches), s: sheetScale(), fx: (e.touches[0].clientX + e.touches[1].clientX) / 2 - b.left, fy: (e.touches[0].clientY + e.touches[1].clientY) / 2 - b.top }; }
+  }, { passive: true });
+  sc.addEventListener('touchmove', e => {
+    if (e.touches.length === 2 && p0) {
+      e.preventDefault();
+      const b = sc.getBoundingClientRect();
+      const cx = (e.touches[0].clientX + e.touches[1].clientX) / 2 - b.left, cy = (e.touches[0].clientY + e.touches[1].clientY) / 2 - b.top;
+      zoomTo(p0.s * dist(e.touches) / p0.d, cx, cy);
+    }
+  }, { passive: false });
+  const end = e => { if (e.touches.length < 2 && p0) { p0 = null; saveUi(); } };
+  sc.addEventListener('touchend', end); sc.addEventListener('touchcancel', end);
+  ['gesturestart', 'gesturechange'].forEach(ev => sc.addEventListener(ev, e => e.preventDefault()));    // Safari: kein Seiten-Zoom
+  sc.addEventListener('wheel', e => {
+    if (!e.ctrlKey) return;
+    e.preventDefault();
+    const b = sc.getBoundingClientRect();
+    zoomTo(sheetScale() * Math.exp(-e.deltaY * 0.01), e.clientX - b.left, e.clientY - b.top);
+    clearTimeout(zoomTo.t); zoomTo.t = setTimeout(saveUi, 400);
+  }, { passive: false });
+})();
 function syncZoom() { $$('#zoomSeg button').forEach(b => b.classList.toggle('on', b.dataset.zoom === String(S.zoom))); }
 let rsT = 0;
 window.addEventListener('resize', () => { clearTimeout(rsT); rsT = setTimeout(() => { drawSheet(); if (!$('#cropModal').hidden) fitCrop(); }, 80); });

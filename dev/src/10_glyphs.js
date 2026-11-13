@@ -226,6 +226,7 @@ const CHAR_ALIAS = {
   '∙': '·', '●': '•', '▪': '•', '◦': '•', '‣': '•', '○': '•',
   '⁄': '/', '∗': '*', '➔': '→', '⇒': '→', '➜': '→', 'ẞ': 'ß', 'μ': 'µ'
 };
+TW.CHAR_ALIAS = CHAR_ALIAS;
 TW.CHAR_GROUPS = [
   { id: 'klein', name: 'Kleinbuchstaben (a–z)', chars: 'abcdefghijklmnopqrstuvwxyz'.split('') },
   { id: 'gross', name: 'Großbuchstaben (A–Z)', chars: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('') },
