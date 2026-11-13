@@ -318,6 +318,7 @@ pre.log:empty{display:none}
           <div class="progress thin"><i id="modelBar"></i></div>
           <div class="row" style="margin-top:6px"><p class="hint grow" id="modelMsg">Download startet …</p><button class="btn btn-ghost btn-sm" id="btnCancelModel" hidden>Abbrechen</button></div>
         </div>
+        <div class="warnbox" id="aiCrash" hidden style="margin-top:12px"></div>
         <div class="warnbox" id="aiError" hidden style="margin-top:12px"></div>
         <details class="fold" id="aiHelp">
           <summary>Modell &amp; Optionen</summary>
@@ -325,7 +326,7 @@ pre.log:empty{display:none}
             <label class="lbl" for="aiModel">Modell</label>
             <select id="aiModel" class="field" aria-label="KI-Modell"></select>
             <button class="btn btn-block" id="btnLoadModel" disabled style="margin-top:10px">Tizian laden</button>
-            <label class="switch" style="margin-top:6px"><input type="checkbox" id="aiNoCache"><span>Ohne Browser-Cache laden</span></label>
+            <label class="switch" style="margin-top:6px"><input type="checkbox" id="aiNoCache"><span>Ohne Sicherung im Cache laden</span></label>
             <label class="switch"><input type="checkbox" id="aiCompat"><span>Kompatibilitätsmodus (q4)</span></label>
             <pre id="aiLogText" class="log"></pre>
           </div>
@@ -2768,6 +2769,32 @@ function aiError(msg) { const e = $('#aiError'); e.hidden = !msg; e.textContent 
 const WORKER_SRC = `
 let tf = null, gen = null, stopper = null;
 const post = (t, d) => postMessage(Object.assign({ t }, d || {}));
+/* Große Modelldatei direkt aus dem Netz in den Cache streamen (nicht erst in den Arbeitsspeicher).
+   So bleibt der Download erhalten, auch wenn der Tab beim Start des Modells neu geladen wird. */
+async function precache(m) {
+  const host = (tf.env.remoteHost || 'https://huggingface.co/').replace(/\\/?$/, '/');
+  const tpl = (tf.env.remotePathTemplate || '{model}/resolve/{revision}/').replace('{model}', m.model).replace('{revision}', 'main');
+  const url = host + tpl + 'onnx/model' + (m.dtype === 'q4f16' ? '_q4f16' : '_q4') + '.onnx';
+  const cache = await caches.open(tf.env.cacheKey || 'transformers-cache');
+  if (await cache.match(url)) { post('log', { m: 'Modell liegt bereits gesichert im Cache – kein Download nötig' }); return true; }
+  post('log', { m: 'Download wird direkt auf dem Gerät gesichert' });
+  const resp = await fetch(url);
+  if (!resp.ok || !resp.body) throw new Error('HTTP ' + resp.status);
+  const total = parseInt(resp.headers.get('content-length') || '0', 10);
+  let loaded = 0, last = 0;
+  const counter = new TransformStream({ transform(chunk, ctl) {
+    loaded += chunk.byteLength; const now = Date.now();
+    if (now - last > 250) { last = now; post('progress', { p: { status: 'progress', file: 'modell', loaded, total: total || loaded } }); }
+    ctl.enqueue(chunk);
+  } });
+  const headers = new Headers({ 'content-type': 'application/octet-stream' });
+  if (total) headers.set('content-length', String(total));
+  await cache.put(url, new Response(resp.body.pipeThrough(counter), { headers }));
+  if (!(await cache.match(url))) throw new Error('Cache-Eintrag fehlt');
+  post('progress', { p: { status: 'progress', file: 'modell', loaded, total: loaded } });
+  post('log', { m: 'Download gesichert (' + Math.round(loaded / 1048576) + ' MB)' });
+  return true;
+}
 self.onmessage = async e => {
   const m = e.data;
   try {
@@ -2777,9 +2804,15 @@ self.onmessage = async e => {
       post('log', { m: 'Transformers.js geladen' });
       tf.env.allowLocalModels = false;
       if (m.noCache) tf.env.useBrowserCache = false;
-      gen = await tf.pipeline('text-generation', m.model, { device: 'webgpu', dtype: m.dtype, progress_callback: p => {
-        post('progress', { p: { status: p.status, file: p.file, loaded: p.loaded, total: p.total } });
-      } });
+      let cached = false;
+      if (!m.noCache && self.caches) {
+        try { cached = await precache(m); } catch (err) { post('log', { m: 'Direktes Sichern nicht möglich (' + String((err && err.message) || err) + ') – normaler Download' }); }
+      }
+      post('phase', { p: 'start', cached });
+      try { tf.env.backends.onnx.wasm.numThreads = 1; } catch (_) {}
+      const cb = p => post('progress', { p: { status: p.status, file: p.file, loaded: p.loaded, total: p.total } });
+      // Liegt das Modell im Cache, ohne Fortschritts-Callback laden: die Bibliothek liest es dann in einem Stück (halber Speicherbedarf)
+      gen = await tf.pipeline('text-generation', m.model, cached ? { device: 'webgpu', dtype: m.dtype } : { device: 'webgpu', dtype: m.dtype, progress_callback: cb });
       post('ready');
     } else if (m.t === 'gen') {
       stopper = new tf.InterruptableStoppingCriteria();
@@ -2790,6 +2823,21 @@ self.onmessage = async e => {
     } else if (m.t === 'stop') { if (stopper) stopper.interrupt(); }
   } catch (err) { post('error', { id: m.id, stage: m.t, msg: String((err && err.message) || err) }); }
 };`;
+/* Absturz-Erkennung: Safari lädt die Seite neu, wenn der Speicher nicht reicht. Der Merker überlebt den Neustart. */
+const RUN_KEY = 'tintenwerk.ki.lauf.v1';
+const runMark = phase => { const o = LS.get(RUN_KEY, {}) || {}; if (phase === null) LS.del(RUN_KEY); else LS.quiet(RUN_KEY, { phase, n: o.n || 0, model: AI.sel }); };
+(function crashNotice() {
+  const o = LS.get(RUN_KEY, null);
+  if (!o || !o.phase) return;
+  const n = (o.n || 0) + 1; LS.quiet(RUN_KEY, { phase: null, n, model: o.model });
+  const el = $('#aiCrash');
+  el.innerHTML = (o.phase === 'start'
+    ? '<b>Safari hat die Seite beim Start von Tizian neu geladen.</b> Meist reicht dafür der freie Arbeitsspeicher nicht. Der Download ist gesichert und wird nicht wiederholt.'
+    : '<b>Die Seite wurde während des Downloads neu geladen.</b> Der Download beginnt beim nächsten Versuch erneut.')
+    + ' Schließe andere Tabs und Apps und tippe noch einmal auf „Text jetzt glätten“.'
+    + (n >= 2 && o.phase === 'start' ? ' <b>Nach ' + n + ' Versuchen:</b> Das Modell passt auf diesem Gerät vermutlich nicht in den Speicher von Safari.' : '');
+  el.hidden = false;
+})();
 AI.log = []; AI.pending = new Map(); AI.seq = 0; AI.worker = null; AI.files = new Map(); AI.t0 = 0; AI.t100 = 0; AI.tick = 0;
 const OPT_KEY = 'tintenwerk.ki.opt.v1', opt = Object.assign({ noCache: false, compat: false }, LS.get(OPT_KEY, {}));
 $('#aiNoCache').checked = opt.noCache; $('#aiCompat').checked = opt.compat;
@@ -2818,13 +2866,14 @@ function idleUi() {
 }
 function onWorkerMessage(m) {
   if (m.t === 'log') aiLog(m.m);
+  else if (m.t === 'phase') { AI.phase = m.p; AI.cached = !!m.cached; runMark(m.p); aiLog(m.cached ? 'Starte Tizian aus dem gesicherten Download' : 'Starte Tizian'); updateLoadMsg(); }
   else if (m.t === 'progress') {
     const p = m.p;
     if (p.status === 'progress' && p.file && p.total) AI.files.set(p.file, [p.loaded || 0, p.total]);
     else aiLog(`${p.status}${p.file ? ' ' + p.file : ''}`);
     updateLoadMsg();
   } else if (m.t === 'ready') {
-    clearInterval(AI.tick); aiLog('Modell bereit');
+    clearInterval(AI.tick); aiLog('Modell bereit'); runMark(null); $('#aiCrash').hidden = true;
     AI.state = 'ready'; AI.loaded = AI.sel; $('#aiModel').disabled = false; $('#btnCancelModel').hidden = true;
     $('#modelBar').style.width = '100%'; $('#modelMsg').textContent = 'Tizian ist bereit (läuft lokal über WebGPU im Hintergrund).';
     $('#btnLoadModel').hidden = true; aiChanged();
@@ -2837,7 +2886,7 @@ function onWorkerMessage(m) {
   }
 }
 function loadFailed(msg) {
-  aiLog('FEHLER: ' + msg); aiKill('Laden fehlgeschlagen'); idleUi();
+  aiLog('FEHLER: ' + msg); aiKill('Laden fehlgeschlagen'); idleUi(); runMark(null);
   aiError(/fetch|network|load failed|import|Failed to/i.test(msg) ? 'Das Modell konnte nicht geladen werden (Netzwerk oder CDN nicht erreichbar). Bitte Verbindung prüfen und erneut versuchen. Details: ' + msg
     : /memory|allocation|out of|device lost|OOM/i.test(msg) ? 'Zu wenig freier Speicher für das Modell. Bitte andere Tabs/Apps schließen, „Schnell“ wählen oder den Kompatibilitätsmodus probieren. Details: ' + msg
     : 'Tizian konnte nicht gestartet werden. Unter „Probleme beim Laden?“ stehen Optionen und das Protokoll. Details: ' + msg);
@@ -2848,16 +2897,17 @@ function updateLoadMsg() {
   let l = 0, t = 0; for (const [a, b] of AI.files.values()) { l += a; t += b; }
   const pct = t ? l / t * 100 : 0, sec = Math.round((performance.now() - AI.t0) / 1000), tm = `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
   $('#modelBar').style.width = pct.toFixed(1) + '%';
-  if (t && pct >= 99.5) {
+  if (AI.phase === 'start' || (t && pct >= 99.5)) {
     if (!AI.t100) { AI.t100 = performance.now(); aiLog('Download vollständig – Modell wird für die GPU vorbereitet'); }
     const wait = Math.round((performance.now() - AI.t100) / 1000);
-    $('#modelMsg').textContent = `Download fertig (${(t / 1048576).toFixed(0)} MB). Modell wird für die GPU vorbereitet … ${tm}` + (wait > 150 ? ' – das dauert ungewöhnlich lange. Du kannst abbrechen und unter „Probleme beim Laden?“ andere Optionen probieren.' : ' (kann 1–3 Minuten dauern; die Seite bleibt bedienbar).');
-  } else $('#modelMsg').textContent = t ? `${pct.toFixed(0)} % · ${(l / 1048576).toFixed(0)} MB von ${(t / 1048576).toFixed(0)} MB geladen · ${tm}` : `Verbindung wird aufgebaut … ${tm}`;
+    $('#modelBar').style.width = '100%';
+    $('#modelMsg').textContent = `${AI.cached ? 'Download gesichert' : 'Download fertig'}${t ? ` (${(t / 1048576).toFixed(0)} MB)` : ''}. Tizian wird gestartet … ${tm}` + (wait > 150 ? ' – das dauert ungewöhnlich lange. Du kannst abbrechen und unter „Probleme beim Laden?“ andere Optionen probieren.' : ' (kann 1–3 Minuten dauern; die Seite bleibt bedienbar).');
+  } else $('#modelMsg').textContent = t ? `${pct.toFixed(0)} % · ${(l / 1048576).toFixed(0)} von ${(t / 1048576).toFixed(0)} MB · ${tm}` : `Verbindung wird aufgebaut … ${tm}`;
 }
 $('#btnLoadModel').addEventListener('click', async () => {
   if (AI.state === 'loading' || AI.state === 'ready') return;
   if (!(await confirmDialog('Tizian laden?', `Tizian ist ein lokales KI-Modell. Es werden ca. ${aiMb()} MB (geschätzt) von huggingface.co heruntergeladen und im Browser-Cache dieses Geräts gespeichert (am besten im WLAN). Die Verarbeitung deiner Texte bleibt danach vollständig lokal.`, 'Jetzt laden'))) { AI.after = null; return; }
-  AI.state = 'loading'; aiError(''); AI.files = new Map(); AI.log = []; AI.t0 = performance.now(); AI.t100 = 0;
+  AI.state = 'loading'; aiError(''); AI.files = new Map(); AI.log = []; AI.t0 = performance.now(); AI.t100 = 0; AI.phase = 'download'; AI.cached = false; runMark('download'); $('#aiCrash').hidden = true;
   $('#aiModel').disabled = true; $('#btnLoadModel').hidden = true; $('#btnCancelModel').hidden = false; aiChanged();
   $('#modelProg').hidden = false; $('#modelBar').style.width = '0%'; $('#modelMsg').textContent = 'Transformers.js wird im Hintergrund geladen (cdn.jsdelivr.net) …';
   const compat = $('#aiCompat').checked, noCache = $('#aiNoCache').checked;
@@ -2873,7 +2923,7 @@ $('#btnLoadModel').addEventListener('click', async () => {
     AI.tick = setInterval(updateLoadMsg, 1000);
   } catch (e) { loadFailed('Web-Worker nicht verfügbar: ' + ((e && e.message) || e)); }
 });
-$('#btnCancelModel').addEventListener('click', () => { aiLog('Vom Nutzer abgebrochen'); aiKill('abgebrochen'); idleUi(); toast('Laden abgebrochen. Der Speicher wird freigegeben.'); });
+$('#btnCancelModel').addEventListener('click', () => { aiLog('Vom Nutzer abgebrochen'); aiKill('abgebrochen'); idleUi(); runMark(null); toast('Laden abgebrochen. Der Speicher wird freigegeben.'); });
 const SYS_PROMPT = 'Du heißt Tizian und bist ein sorgfältiger Schreibassistent für Lernnotizen. Formuliere den Abschnitt des Nutzers flüssiger, natürlicher und persönlicher – so, als hätte ihn eine Studentin oder ein Student in eigenen Worten aufgeschrieben. Regeln: 1. Behalte ALLE Fakten, Zahlen, Daten, Einheiten, Namen, Einschränkungen und Fachbegriffe exakt bei. 2. Erfinde nichts hinzu und lasse nichts weg. 3. Behalte die Sprache des Abschnitts sowie Listenpunkte (Zeilen mit "- " oder Nummern) bei. 4. Gib ausschließlich den umformulierten Abschnitt aus – ohne Einleitung, Erklärung oder Anführungszeichen.';
 function chunkText(text) {         // Absatz-Chunking; Überschriften und sehr kurze Blöcke bleiben unverändert
   const blocks = text.replace(/\r\n?/g, '\n').split(/\n{2,}/), out = [];

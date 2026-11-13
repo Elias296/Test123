@@ -78,6 +78,7 @@
           <div class="progress thin"><i id="modelBar"></i></div>
           <div class="row" style="margin-top:6px"><p class="hint grow" id="modelMsg">Download startet …</p><button class="btn btn-ghost btn-sm" id="btnCancelModel" hidden>Abbrechen</button></div>
         </div>
+        <div class="warnbox" id="aiCrash" hidden style="margin-top:12px"></div>
         <div class="warnbox" id="aiError" hidden style="margin-top:12px"></div>
         <details class="fold" id="aiHelp">
           <summary>Modell &amp; Optionen</summary>
@@ -85,7 +86,7 @@
             <label class="lbl" for="aiModel">Modell</label>
             <select id="aiModel" class="field" aria-label="KI-Modell"></select>
             <button class="btn btn-block" id="btnLoadModel" disabled style="margin-top:10px">Tizian laden</button>
-            <label class="switch" style="margin-top:6px"><input type="checkbox" id="aiNoCache"><span>Ohne Browser-Cache laden</span></label>
+            <label class="switch" style="margin-top:6px"><input type="checkbox" id="aiNoCache"><span>Ohne Sicherung im Cache laden</span></label>
             <label class="switch"><input type="checkbox" id="aiCompat"><span>Kompatibilitätsmodus (q4)</span></label>
             <pre id="aiLogText" class="log"></pre>
           </div>
