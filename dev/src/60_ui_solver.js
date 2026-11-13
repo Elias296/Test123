@@ -17,7 +17,7 @@ const saveProfile = () => { P.name = $('#stuName').value.trim().slice(0, 40); P.
 
 /* ---------- Zustand der Schaltflächen ---------- */
 function refresh() {
-  const ready = AI.state === 'ready' && !!AI.gen;
+  const ready = AI.state === 'ready';
   $('#btnSolvePages').disabled = $('#btnSolveEditor').disabled = $('#btnSolveStaging').disabled = !ready;
   $('#solveHint').textContent = !ready ? 'Zuerst oben ein KI-Modell laden (für Aufgaben wird „Besser“ empfohlen).'
     : AI.loaded === 'schnell' ? 'Modell bereit. Tipp: Das Modell „Besser“ löst Aufgaben zuverlässiger.' : 'Modell bereit.';
@@ -34,7 +34,7 @@ $('#btnSolveStaging').addEventListener('click', () => { const t = $('#stagingTex
 let results = [], stats = null;
 const outEl = $('#solveOut'), tasksEl = $('#solveTasks');
 function solveText(text, info) {
-  if (AI.state !== 'ready' || !AI.gen) { toast('Bitte zuerst ein KI-Modell laden.'); return; }
+  if (AI.state !== 'ready') { toast('Bitte zuerst ein KI-Modell laden.'); return; }
   if (AI.running) { toast('Die KI arbeitet noch. Bitte kurz warten oder abbrechen.'); return; }
   tasksEl.value = text; outEl.value = ''; results = [];
   $('#solveWarn').hidden = true; $('#solveBy').textContent = ''; $('#solveProgress').textContent = info ? '· ' + info : '';
@@ -55,7 +55,7 @@ async function run() {
   if (!tasks.length) { toast('Keine Aufgaben erkannt.'); setBtns(false); return; }
   const opt = { name: P.name, grade: P.grade, work: P.work }, sys = SV.buildSystem(opt);
   stats = { calc: 0, ai: 0, open: [] }; results = [];
-  AI.running = true; AI.stopper = new AI.tf.InterruptableStoppingCriteria();
+  AI.running = true;
   setBtns(true); let aborted = false;
   try {
     for (let i = 0; i < tasks.length; i++) {
@@ -64,13 +64,11 @@ async function run() {
       const calc = SV.calcTask(t.text);
       if (calc) { results.push({ label: t.label, text: calc.join('\n') }); stats.calc++; show(); continue; }
       let cur = '';
-      const streamer = new AI.tf.TextStreamer(AI.gen.tokenizer, { skip_prompt: true, skip_special_tokens: true, callback_function: x => { cur += x; show({ label: t.label, text: SV.cleanAnswer(cur) }); } });
-      const res = await AI.gen([{ role: 'system', content: sys }, { role: 'user', content: SV.buildUser(t, context) }],
-        { max_new_tokens: 500, do_sample: false, repetition_penalty: 1.05, streamer, stopping_criteria: AI.stopper });
-      let txt = cur;
-      try { const g = res[0].generated_text; txt = (Array.isArray(g) ? g[g.length - 1].content : g) || cur; } catch (e) { /* Streamer-Text */ }
+      const r = await AI.generate([{ role: 'system', content: sys }, { role: 'user', content: SV.buildUser(t, context) }],
+        { max_new_tokens: 500, do_sample: false, repetition_penalty: 1.05 }, x => { cur += x; show({ label: t.label, text: SV.cleanAnswer(cur) }); });
+      let txt = r.text || cur;
       txt = SV.cleanAnswer(txt);
-      if (AI.stopper.interrupted) { aborted = true; if (txt) results.push({ label: t.label, text: txt + ' …' }); show(); break; }
+      if (r.interrupted) { aborted = true; if (txt) results.push({ label: t.label, text: txt + ' …' }); show(); break; }
       if (SV.isUnsolvable(txt)) stats.open.push(t.label || String(i + 1));
       results.push({ label: t.label, text: txt || '[Keine Antwort]' }); stats.ai++; show();
     }
@@ -86,8 +84,8 @@ async function run() {
   setBtns(false);
 }
 $('#solveAgain').addEventListener('click', () => { if (!AI.running) { outEl.value = ''; run(); } });
-$('#solveCancel').addEventListener('click', () => { if (AI.stopper) AI.stopper.interrupt(); $('#solveProgress').textContent = '· wird abgebrochen …'; });
-$('#solveDiscard').addEventListener('click', () => { if (AI.running && AI.stopper) AI.stopper.interrupt(); closeModal('#solveModal'); });
+$('#solveCancel').addEventListener('click', () => { AI.interrupt(); $('#solveProgress').textContent = '· wird abgebrochen …'; });
+$('#solveDiscard').addEventListener('click', () => { if (AI.running) AI.interrupt(); closeModal('#solveModal'); });
 outEl.addEventListener('input', () => setBtns(false));
 
 /* ---------- Übernehmen (mit Undo-Snapshot, nie automatisch) ---------- */

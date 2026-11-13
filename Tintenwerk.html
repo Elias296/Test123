@@ -304,6 +304,13 @@ textarea:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px rgba(3
           <div class="progress amber"><i id="modelBar"></i></div>
           <p class="hint" id="modelMsg" style="margin-top:6px">Download startet …</p>
         </div>
+        <button class="btn btn-block" id="btnCancelModel" hidden style="margin-top:8px">Laden abbrechen</button>
+        <details id="aiHelp" style="margin-top:10px">
+          <summary class="hint" style="min-height:44px;display:flex;align-items:center;cursor:pointer">Probleme beim Laden?</summary>
+          <label class="switch"><input type="checkbox" id="aiNoCache"><span>Ohne Browser-Cache laden (falls es nach dem Download hängt)</span></label>
+          <label class="switch"><input type="checkbox" id="aiCompat"><span>Kompatibilitätsmodus: q4 statt q4f16 (größerer Download)</span></label>
+          <pre id="aiLogText" class="hint" style="white-space:pre-wrap;word-break:break-word;background:#F6F4EF;border-radius:10px;padding:8px;margin:6px 0 0;font-size:11.5px;min-height:20px"></pre>
+        </details>
         <div class="warnbox" id="aiError" hidden style="margin-top:10px"></div>
         <button class="btn btn-amber btn-block" id="btnRewrite" hidden style="margin-top:10px">Entwurf natürlicher formulieren</button>
         <p class="hint" style="margin-top:8px">Kein automatischer Download. Tintenwerk verspricht keine Umgehung von KI-Detektoren – es geht um bessere, eigene Lernnotizen.</p>
@@ -2643,7 +2650,7 @@ const AI = {
     schnell: { id: 'onnx-community/Qwen2.5-0.5B-Instruct', mbF16: 480, mbQ4: 790, name: 'Schnell · Qwen2.5-0.5B' },
     besser: { id: 'onnx-community/Qwen2.5-1.5B-Instruct', mbF16: 1200, mbQ4: 1400, name: 'Besser · Qwen2.5-1.5B' }
   },
-  sel: LS.get('tintenwerk.ki.v1', 'schnell'), loaded: null, f16: true, dtype: 'q4f16', tf: null, gen: null, gpu: false, state: 'idle', stopper: null, running: false
+  sel: LS.get('tintenwerk.ki.v1', 'schnell'), loaded: null, f16: true, dtype: 'q4f16', gpu: false, state: 'idle', running: false
 };
 if (!AI.models[AI.sel]) AI.sel = 'schnell';
 window.TWApp.AI = AI;
@@ -2654,10 +2661,7 @@ $('#aiModel').innerHTML = Object.entries(AI.models).map(([k, m]) => `<option val
 $('#aiModel').value = AI.sel;
 $('#aiModel').addEventListener('change', async e => {
   AI.sel = e.target.value; LS.quiet('tintenwerk.ki.v1', AI.sel);
-  if (AI.state === 'ready' && AI.loaded !== AI.sel) {          // anderes Modell gewählt: altes freigeben, neues muss geladen werden
-    try { if (AI.gen && AI.gen.dispose) await AI.gen.dispose(); } catch (err) { /* egal */ }
-    AI.gen = null; AI.state = 'idle'; AI.loaded = null; $('#btnRewrite').hidden = true; $('#btnLoadModel').hidden = false; $('#modelProg').hidden = true; aiChanged();
-  }
+  if (AI.state === 'ready' && AI.loaded !== AI.sel) { aiKill('Modell gewechselt'); idleUi(); }          // anderes Modell gewählt: Worker beenden, neues muss geladen werden
   $('#btnLoadModel').textContent = loadLabel();
 });
 async function detectGpu() {
@@ -2676,40 +2680,115 @@ async function detectGpu() {
   } catch (e) { off('WebGPU konnte nicht initialisiert werden: ' + esc(e.message || e)); }
 }
 function aiError(msg) { const e = $('#aiError'); e.hidden = !msg; e.textContent = msg || ''; }
+/* Die KI läuft in einem eigenen Web-Worker: Die Seite bleibt bedienbar, und „Abbrechen“ beendet den Worker wirklich (gibt Speicher frei). */
+const WORKER_SRC = `
+let tf = null, gen = null, stopper = null;
+const post = (t, d) => postMessage(Object.assign({ t }, d || {}));
+self.onmessage = async e => {
+  const m = e.data;
+  try {
+    if (m.t === 'load') {
+      post('log', { m: 'Worker gestartet, lade Transformers.js' });
+      tf = await import(m.url);
+      post('log', { m: 'Transformers.js geladen' });
+      tf.env.allowLocalModels = false;
+      if (m.noCache) tf.env.useBrowserCache = false;
+      gen = await tf.pipeline('text-generation', m.model, { device: 'webgpu', dtype: m.dtype, progress_callback: p => {
+        post('progress', { p: { status: p.status, file: p.file, loaded: p.loaded, total: p.total } });
+      } });
+      post('ready');
+    } else if (m.t === 'gen') {
+      stopper = new tf.InterruptableStoppingCriteria();
+      const streamer = new tf.TextStreamer(gen.tokenizer, { skip_prompt: true, skip_special_tokens: true, callback_function: x => post('tok', { id: m.id, x }) });
+      const res = await gen(m.messages, Object.assign({}, m.opts, { streamer, stopping_criteria: stopper }));
+      let text = ''; try { const g = res[0].generated_text; text = (Array.isArray(g) ? g[g.length - 1].content : g) || ''; } catch (_) {}
+      post('done', { id: m.id, text, interrupted: stopper.interrupted });
+    } else if (m.t === 'stop') { if (stopper) stopper.interrupt(); }
+  } catch (err) { post('error', { id: m.id, stage: m.t, msg: String((err && err.message) || err) }); }
+};`;
+AI.log = []; AI.pending = new Map(); AI.seq = 0; AI.worker = null; AI.files = new Map(); AI.t0 = 0; AI.t100 = 0; AI.tick = 0;
+const OPT_KEY = 'tintenwerk.ki.opt.v1', opt = Object.assign({ noCache: false, compat: false }, LS.get(OPT_KEY, {}));
+$('#aiNoCache').checked = opt.noCache; $('#aiCompat').checked = opt.compat;
+$('#aiHelp').addEventListener('change', () => { opt.noCache = $('#aiNoCache').checked; opt.compat = $('#aiCompat').checked; LS.quiet(OPT_KEY, opt); });
+function aiLog(m) {
+  AI.log.push(`${((performance.now() - AI.t0) / 1000).toFixed(1).padStart(5)} s  ${m}`); if (AI.log.length > 80) AI.log.shift();
+  $('#aiLogText').textContent = AI.log.slice(-14).join('\n');
+}
+AI.generate = (messages, opts, onTok) => new Promise((res, rej) => {
+  if (!AI.worker || AI.state !== 'ready') { rej(new Error('Das KI-Modell ist nicht geladen.')); return; }
+  const id = ++AI.seq; AI.pending.set(id, { res, rej, onTok });
+  AI.worker.postMessage({ t: 'gen', id, messages, opts });
+});
+AI.interrupt = () => { if (AI.worker) AI.worker.postMessage({ t: 'stop' }); };
+function aiKill(reason) {
+  clearInterval(AI.tick);
+  if (AI.worker) { try { AI.worker.terminate(); } catch (e) { /* egal */ } AI.worker = null; }
+  for (const p of AI.pending.values()) p.rej(new Error(reason || 'abgebrochen'));
+  AI.pending.clear(); AI.running = false; AI.state = 'idle'; AI.loaded = null;
+}
+function idleUi() {
+  const btn = $('#btnLoadModel');
+  btn.hidden = false; btn.disabled = !AI.gpu; btn.textContent = loadLabel();
+  $('#modelProg').hidden = true; $('#btnCancelModel').hidden = true; $('#aiModel').disabled = false; $('#btnRewrite').hidden = true;
+  aiChanged();
+}
+function onWorkerMessage(m) {
+  if (m.t === 'log') aiLog(m.m);
+  else if (m.t === 'progress') {
+    const p = m.p;
+    if (p.status === 'progress' && p.file && p.total) AI.files.set(p.file, [p.loaded || 0, p.total]);
+    else aiLog(`${p.status}${p.file ? ' ' + p.file : ''}`);
+    updateLoadMsg();
+  } else if (m.t === 'ready') {
+    clearInterval(AI.tick); aiLog('Modell bereit');
+    AI.state = 'ready'; AI.loaded = AI.sel; $('#aiModel').disabled = false; $('#btnCancelModel').hidden = true;
+    $('#modelBar').style.width = '100%'; $('#modelMsg').textContent = 'Modell geladen und bereit (läuft lokal über WebGPU im Hintergrund).';
+    $('#btnLoadModel').hidden = true; $('#btnRewrite').hidden = false; aiChanged();
+  } else if (m.t === 'tok') { const p = AI.pending.get(m.id); if (p && p.onTok) p.onTok(m.x); }
+  else if (m.t === 'done') { const p = AI.pending.get(m.id); if (p) { AI.pending.delete(m.id); p.res({ text: m.text, interrupted: m.interrupted }); } }
+  else if (m.t === 'error' || m.t === 'fatal') {
+    if (m.t === 'error' && m.stage === 'gen') { const p = AI.pending.get(m.id); if (p) { AI.pending.delete(m.id); p.rej(new Error(m.msg)); } return; }
+    loadFailed(m.msg || 'Unbekannter Fehler');
+  }
+}
+function loadFailed(msg) {
+  aiLog('FEHLER: ' + msg); aiKill('Laden fehlgeschlagen'); idleUi();
+  aiError(/fetch|network|load failed|import|Failed to/i.test(msg) ? 'Das Modell konnte nicht geladen werden (Netzwerk oder CDN nicht erreichbar). Bitte Verbindung prüfen und erneut versuchen. Details: ' + msg
+    : /memory|allocation|out of|device lost|OOM/i.test(msg) ? 'Zu wenig freier Speicher für das Modell. Bitte andere Tabs/Apps schließen, „Schnell“ wählen oder den Kompatibilitätsmodus probieren. Details: ' + msg
+    : 'Das KI-Modell konnte nicht gestartet werden. Unter „Probleme beim Laden?“ stehen Optionen und das Protokoll. Details: ' + msg);
+  $('#aiHelp').open = true;
+}
+function updateLoadMsg() {
+  if (AI.state !== 'loading') return;
+  let l = 0, t = 0; for (const [a, b] of AI.files.values()) { l += a; t += b; }
+  const pct = t ? l / t * 100 : 0, sec = Math.round((performance.now() - AI.t0) / 1000), tm = `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
+  $('#modelBar').style.width = pct.toFixed(1) + '%';
+  if (t && pct >= 99.5) {
+    if (!AI.t100) { AI.t100 = performance.now(); aiLog('Download vollständig – Modell wird für die GPU vorbereitet'); }
+    const wait = Math.round((performance.now() - AI.t100) / 1000);
+    $('#modelMsg').textContent = `Download fertig (${(t / 1048576).toFixed(0)} MB). Modell wird für die GPU vorbereitet … ${tm}` + (wait > 150 ? ' – das dauert ungewöhnlich lange. Du kannst abbrechen und unter „Probleme beim Laden?“ andere Optionen probieren.' : ' (kann 1–3 Minuten dauern; die Seite bleibt bedienbar).');
+  } else $('#modelMsg').textContent = t ? `${pct.toFixed(0)} % · ${(l / 1048576).toFixed(0)} MB von ${(t / 1048576).toFixed(0)} MB geladen · ${tm}` : `Verbindung wird aufgebaut … ${tm}`;
+}
 $('#btnLoadModel').addEventListener('click', async () => {
   if (AI.state === 'loading' || AI.state === 'ready') return;
   if (!(await confirmDialog('Lokales KI-Modell laden?', `Es werden ca. ${aiMb()} MB (geschätzt) von huggingface.co heruntergeladen und im Browser-Cache dieses Geräts gespeichert (am besten im WLAN). Die Verarbeitung deiner Texte bleibt danach vollständig lokal.`, 'Jetzt laden'))) return;
-  AI.state = 'loading'; aiError(''); $('#aiModel').disabled = true;
-  const btn = $('#btnLoadModel'); btn.disabled = true; btn.innerHTML = '<span class="spin dark"></span> Modell wird geladen …';
-  $('#modelProg').hidden = false; $('#modelBar').style.width = '0%'; $('#modelMsg').textContent = 'Transformers.js wird geladen (cdn.jsdelivr.net) …';
-  const files = new Map();
+  AI.state = 'loading'; aiError(''); AI.files = new Map(); AI.log = []; AI.t0 = performance.now(); AI.t100 = 0;
+  $('#aiModel').disabled = true; $('#btnLoadModel').hidden = true; $('#btnCancelModel').hidden = false;
+  $('#modelProg').hidden = false; $('#modelBar').style.width = '0%'; $('#modelMsg').textContent = 'Transformers.js wird im Hintergrund geladen (cdn.jsdelivr.net) …';
+  const compat = $('#aiCompat').checked, noCache = $('#aiNoCache').checked;
+  const dtype = (AI.f16 && !compat) ? 'q4f16' : 'q4', model = AI.models[AI.sel].id;
+  aiLog(`Start: ${model}, ${dtype}${noCache ? ', ohne Browser-Cache' : ''}`);
   try {
-    if (!AI.tf) AI.tf = await import(AI.tfUrl);
-    AI.tf.env.allowLocalModels = false;
-    AI.gen = await AI.tf.pipeline('text-generation', AI.models[AI.sel].id, {
-      device: 'webgpu', dtype: AI.dtype,
-      progress_callback: p => {
-        if (p.status === 'progress' && p.file && p.total) {
-          files.set(p.file, [p.loaded || 0, p.total]);
-          let l = 0, t = 0; for (const [a, b] of files.values()) { l += a; t += b; }
-          const pct = t ? l / t * 100 : 0;
-          $('#modelBar').style.width = pct.toFixed(1) + '%';
-          $('#modelMsg').textContent = `${pct.toFixed(0)} % · ${(l / 1048576).toFixed(0)} MB von ${(t / 1048576).toFixed(0)} MB geladen`;
-        } else if (p.status === 'ready') $('#modelMsg').textContent = 'Modell wird auf der GPU vorbereitet …';
-      }
-    });
-    AI.state = 'ready'; AI.loaded = AI.sel; $('#aiModel').disabled = false; aiChanged();
-    $('#modelBar').style.width = '100%'; $('#modelMsg').textContent = 'Modell geladen und bereit (läuft lokal über WebGPU).';
-    btn.hidden = true; $('#btnRewrite').hidden = false;
-  } catch (e) {
-    AI.state = 'idle'; AI.gen = null; $('#aiModel').disabled = false; aiChanged();
-    $('#modelProg').hidden = true; btn.disabled = false; btn.textContent = loadLabel();
-    const m = String((e && e.message) || e);
-    aiError(/fetch|network|load failed|import/i.test(m) ? 'Das Modell konnte nicht geladen werden (Netzwerk oder CDN nicht erreichbar). Bitte Verbindung prüfen und erneut versuchen. Details: ' + m
-      : /memory|allocation|out of/i.test(m) ? 'Zu wenig freier Speicher für das Modell. Bitte andere Tabs/Apps schließen und erneut versuchen. Details: ' + m
-      : 'Das KI-Modell konnte nicht gestartet werden. Details: ' + m);
-  }
+    const url = URL.createObjectURL(new Blob([WORKER_SRC], { type: 'text/javascript' }));
+    AI.worker = new Worker(url, { type: 'module' });
+    setTimeout(() => URL.revokeObjectURL(url), 15000);
+    AI.worker.onmessage = e => onWorkerMessage(e.data);
+    AI.worker.onerror = e => { if (e.preventDefault) e.preventDefault(); loadFailed(e.message || 'Worker-Fehler'); };
+    AI.worker.postMessage({ t: 'load', url: AI.tfUrl, model, dtype, noCache });
+    AI.tick = setInterval(updateLoadMsg, 1000);
+  } catch (e) { loadFailed('Web-Worker nicht verfügbar: ' + ((e && e.message) || e)); }
 });
+$('#btnCancelModel').addEventListener('click', () => { aiLog('Vom Nutzer abgebrochen'); aiKill('abgebrochen'); idleUi(); toast('Laden abgebrochen. Der Speicher wird freigegeben.'); });
 const SYS_PROMPT = 'Du bist ein sorgfältiger Schreibassistent für Lernnotizen. Formuliere den Abschnitt des Nutzers flüssiger, natürlicher und persönlicher – so, als hätte ihn eine Studentin oder ein Student in eigenen Worten aufgeschrieben. Regeln: 1. Behalte ALLE Fakten, Zahlen, Daten, Einheiten, Namen, Einschränkungen und Fachbegriffe exakt bei. 2. Erfinde nichts hinzu und lasse nichts weg. 3. Behalte die Sprache des Abschnitts sowie Listenpunkte (Zeilen mit "- " oder Nummern) bei. 4. Gib ausschließlich den umformulierten Abschnitt aus – ohne Einleitung, Erklärung oder Anführungszeichen.';
 function chunkText(text) {         // Absatz-Chunking; Überschriften und sehr kurze Blöcke bleiben unverändert
   const blocks = text.replace(/\r\n?/g, '\n').split(/\n{2,}/), out = [];
@@ -2771,14 +2850,14 @@ function showFactWarn() {
 }
 $('#cmpAi').addEventListener('input', showFactWarn);
 $('#btnRewrite').addEventListener('click', async () => {
-  if (!AI.gen || AI.running) return;
+  if (AI.state !== 'ready' || AI.running) return;
   const src = S.draft.text.trim();
   if (src.length < 20) { toast('Der Entwurf ist zu kurz zum Umformulieren.'); return; }
   const chunks = chunkText(src), todo = chunks.filter(c => !c.pass).length;
   $('#cmpOrig').value = src; $('#cmpAi').value = ''; $('#cmpAi').readOnly = true;
   $('#cmpWarn').hidden = true; $('#cmpTake').disabled = true; $('#cmpCancel').hidden = false;
   openModal('#cmpModal');
-  AI.running = true; AI.stopper = new AI.tf.InterruptableStoppingCriteria();
+  AI.running = true;
   const done = []; let k = 0, aborted = false;
   const join = parts => parts.map((p, i) => p.text + (i < parts.length - 1 ? (p.tight ? '\n' : '\n\n') : '')).join('');
   try {
@@ -2786,12 +2865,11 @@ $('#btnRewrite').addEventListener('click', async () => {
       if (c.pass) { done.push(c); $('#cmpAi').value = join(done); continue; }
       k++; $('#cmpProgress').textContent = `Abschnitt ${k} von ${todo} wird formuliert …`;
       let cur = '';
-      const streamer = new AI.tf.TextStreamer(AI.gen.tokenizer, { skip_prompt: true, skip_special_tokens: true, callback_function: t => { cur += t; const ta = $('#cmpAi'); ta.value = join(done.concat([{ text: cur }])); ta.scrollTop = ta.scrollHeight; } });
-      const res = await AI.gen([{ role: 'system', content: SYS_PROMPT }, { role: 'user', content: c.text }],
-        { max_new_tokens: Math.min(900, Math.ceil(c.text.length / 2) + 96), do_sample: false, repetition_penalty: 1.08, streamer, stopping_criteria: AI.stopper });
-      if (AI.stopper.interrupted) { aborted = true; done.push({ text: cur.trim() }); break; }
-      let outText = cur;
-      try { const g = res[0].generated_text; outText = (Array.isArray(g) ? g[g.length - 1].content : g) || cur; } catch (e) { /* Streamer-Text verwenden */ }
+      const r = await AI.generate([{ role: 'system', content: SYS_PROMPT }, { role: 'user', content: c.text }],
+        { max_new_tokens: Math.min(900, Math.ceil(c.text.length / 2) + 96), do_sample: false, repetition_penalty: 1.08 },
+        t => { cur += t; const ta = $('#cmpAi'); ta.value = join(done.concat([{ text: cur }])); ta.scrollTop = ta.scrollHeight; });
+      if (r.interrupted) { aborted = true; done.push({ text: cur.trim() }); break; }
+      const outText = r.text || cur;
       done.push({ text: outText.trim() });
       $('#cmpAi').value = join(done);
     }
@@ -2803,8 +2881,8 @@ $('#btnRewrite').addEventListener('click', async () => {
   $('#cmpTake').disabled = !$('#cmpAi').value.trim();
   showFactWarn();
 });
-$('#cmpCancel').addEventListener('click', () => { if (AI.stopper) AI.stopper.interrupt(); $('#cmpProgress').textContent = 'wird abgebrochen …'; });
-$('#cmpDiscard').addEventListener('click', () => { if (AI.running && AI.stopper) AI.stopper.interrupt(); closeModal('#cmpModal'); });
+$('#cmpCancel').addEventListener('click', () => { AI.interrupt(); $('#cmpProgress').textContent = 'wird abgebrochen …'; });
+$('#cmpDiscard').addEventListener('click', () => { if (AI.running) AI.interrupt(); closeModal('#cmpModal'); });
 $('#cmpTake').addEventListener('click', async () => {
   const ai = $('#cmpAi').value.trim(); if (!ai || AI.running) return;
   const f = factCheck($('#cmpOrig').value, ai);
@@ -3012,7 +3090,7 @@ const saveProfile = () => { P.name = $('#stuName').value.trim().slice(0, 40); P.
 
 /* ---------- Zustand der Schaltflächen ---------- */
 function refresh() {
-  const ready = AI.state === 'ready' && !!AI.gen;
+  const ready = AI.state === 'ready';
   $('#btnSolvePages').disabled = $('#btnSolveEditor').disabled = $('#btnSolveStaging').disabled = !ready;
   $('#solveHint').textContent = !ready ? 'Zuerst oben ein KI-Modell laden (für Aufgaben wird „Besser“ empfohlen).'
     : AI.loaded === 'schnell' ? 'Modell bereit. Tipp: Das Modell „Besser“ löst Aufgaben zuverlässiger.' : 'Modell bereit.';
@@ -3029,7 +3107,7 @@ $('#btnSolveStaging').addEventListener('click', () => { const t = $('#stagingTex
 let results = [], stats = null;
 const outEl = $('#solveOut'), tasksEl = $('#solveTasks');
 function solveText(text, info) {
-  if (AI.state !== 'ready' || !AI.gen) { toast('Bitte zuerst ein KI-Modell laden.'); return; }
+  if (AI.state !== 'ready') { toast('Bitte zuerst ein KI-Modell laden.'); return; }
   if (AI.running) { toast('Die KI arbeitet noch. Bitte kurz warten oder abbrechen.'); return; }
   tasksEl.value = text; outEl.value = ''; results = [];
   $('#solveWarn').hidden = true; $('#solveBy').textContent = ''; $('#solveProgress').textContent = info ? '· ' + info : '';
@@ -3050,7 +3128,7 @@ async function run() {
   if (!tasks.length) { toast('Keine Aufgaben erkannt.'); setBtns(false); return; }
   const opt = { name: P.name, grade: P.grade, work: P.work }, sys = SV.buildSystem(opt);
   stats = { calc: 0, ai: 0, open: [] }; results = [];
-  AI.running = true; AI.stopper = new AI.tf.InterruptableStoppingCriteria();
+  AI.running = true;
   setBtns(true); let aborted = false;
   try {
     for (let i = 0; i < tasks.length; i++) {
@@ -3059,13 +3137,11 @@ async function run() {
       const calc = SV.calcTask(t.text);
       if (calc) { results.push({ label: t.label, text: calc.join('\n') }); stats.calc++; show(); continue; }
       let cur = '';
-      const streamer = new AI.tf.TextStreamer(AI.gen.tokenizer, { skip_prompt: true, skip_special_tokens: true, callback_function: x => { cur += x; show({ label: t.label, text: SV.cleanAnswer(cur) }); } });
-      const res = await AI.gen([{ role: 'system', content: sys }, { role: 'user', content: SV.buildUser(t, context) }],
-        { max_new_tokens: 500, do_sample: false, repetition_penalty: 1.05, streamer, stopping_criteria: AI.stopper });
-      let txt = cur;
-      try { const g = res[0].generated_text; txt = (Array.isArray(g) ? g[g.length - 1].content : g) || cur; } catch (e) { /* Streamer-Text */ }
+      const r = await AI.generate([{ role: 'system', content: sys }, { role: 'user', content: SV.buildUser(t, context) }],
+        { max_new_tokens: 500, do_sample: false, repetition_penalty: 1.05 }, x => { cur += x; show({ label: t.label, text: SV.cleanAnswer(cur) }); });
+      let txt = r.text || cur;
       txt = SV.cleanAnswer(txt);
-      if (AI.stopper.interrupted) { aborted = true; if (txt) results.push({ label: t.label, text: txt + ' …' }); show(); break; }
+      if (r.interrupted) { aborted = true; if (txt) results.push({ label: t.label, text: txt + ' …' }); show(); break; }
       if (SV.isUnsolvable(txt)) stats.open.push(t.label || String(i + 1));
       results.push({ label: t.label, text: txt || '[Keine Antwort]' }); stats.ai++; show();
     }
@@ -3081,8 +3157,8 @@ async function run() {
   setBtns(false);
 }
 $('#solveAgain').addEventListener('click', () => { if (!AI.running) { outEl.value = ''; run(); } });
-$('#solveCancel').addEventListener('click', () => { if (AI.stopper) AI.stopper.interrupt(); $('#solveProgress').textContent = '· wird abgebrochen …'; });
-$('#solveDiscard').addEventListener('click', () => { if (AI.running && AI.stopper) AI.stopper.interrupt(); closeModal('#solveModal'); });
+$('#solveCancel').addEventListener('click', () => { AI.interrupt(); $('#solveProgress').textContent = '· wird abgebrochen …'; });
+$('#solveDiscard').addEventListener('click', () => { if (AI.running) AI.interrupt(); closeModal('#solveModal'); });
 outEl.addEventListener('input', () => setBtns(false));
 
 /* ---------- Übernehmen (mit Undo-Snapshot, nie automatisch) ---------- */

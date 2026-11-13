@@ -93,6 +93,13 @@
           <div class="progress amber"><i id="modelBar"></i></div>
           <p class="hint" id="modelMsg" style="margin-top:6px">Download startet …</p>
         </div>
+        <button class="btn btn-block" id="btnCancelModel" hidden style="margin-top:8px">Laden abbrechen</button>
+        <details id="aiHelp" style="margin-top:10px">
+          <summary class="hint" style="min-height:44px;display:flex;align-items:center;cursor:pointer">Probleme beim Laden?</summary>
+          <label class="switch"><input type="checkbox" id="aiNoCache"><span>Ohne Browser-Cache laden (falls es nach dem Download hängt)</span></label>
+          <label class="switch"><input type="checkbox" id="aiCompat"><span>Kompatibilitätsmodus: q4 statt q4f16 (größerer Download)</span></label>
+          <pre id="aiLogText" class="hint" style="white-space:pre-wrap;word-break:break-word;background:#F6F4EF;border-radius:10px;padding:8px;margin:6px 0 0;font-size:11.5px;min-height:20px"></pre>
+        </details>
         <div class="warnbox" id="aiError" hidden style="margin-top:10px"></div>
         <button class="btn btn-amber btn-block" id="btnRewrite" hidden style="margin-top:10px">Entwurf natürlicher formulieren</button>
         <p class="hint" style="margin-top:8px">Kein automatischer Download. Tintenwerk verspricht keine Umgehung von KI-Detektoren – es geht um bessere, eigene Lernnotizen.</p>
