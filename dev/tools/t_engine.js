@@ -1,6 +1,6 @@
 const fs=require('fs'),path=require('path');
 const dir=path.join(__dirname,'..','src');
-const src=['10_glyphs.js','20_layout.js','30_export.js'].map(f=>fs.readFileSync(path.join(dir,f),'utf8')).join('\n');
+const src=['10_glyphs.js','20_layout.js','30_export.js','35_solver_core.js'].map(f=>fs.readFileSync(path.join(dir,f),'utf8')).join('\n');
 const m={exports:{}};new Function('module','require',src)(m,require);const TW=m.exports;
 module.exports=TW;
 if(require.main===module)(async()=>{

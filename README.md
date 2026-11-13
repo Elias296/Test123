@@ -35,6 +35,15 @@ zusätzlich als JSON sichern (Schritt 2 → Sicherung).
 WebGPU ist in Safari ab iPadOS 26 aktiv (unter iPadOS 18: Einstellungen → Apps → Safari → Erweitert → Feature Flags → WebGPU).
 Das Modell (ca. 480 MB) wird erst nach Tipp auf „Lokales KI-Modell laden“ geholt. Ohne KI funktioniert alles andere unverändert.
 
+## Aufgaben lösen (Hausaufgaben-Helfer)
+Import & Text → Karte **Aufgaben lösen**: Name (voreingestellt „Tizian“), Klasse und „Rechenweg zeigen“ einstellen, ein KI-Modell laden
+(für Aufgaben wird **Besser · Qwen2.5-1.5B** empfohlen), dann **Buchseite(n) senden & lösen**.
+Ablauf: Zuschnitt → lokale OCR → Aufgaben werden an Nummern („1.“, „2)“, „Aufgabe 3“) getrennt → reine Rechenzeilen (`345 + 678 =`) löst ein exakter
+Rechner, alles andere die lokale KI → Vergleichsfenster (Aufgaben links, Lösungen rechts, beides bearbeitbar, „Erneut lösen“) → Übernahme als neue Notiz
+oder angehängt (mit Undo) → Vektor-Handschrift im Goodnotes-Export.
+Grenzen: nur Texterkennung (keine Bilder, Diagramme, Handschrift, Formeln), kleine Modelle machen Fehler; die Größenangaben der Modelle sind geschätzt
+und das 1,5-B-Modell wurde nicht auf einem iPad getestet (Speicherbedarf!).
+
 ## Technische Eckdaten des .goodnotes-Exports (aus der Referenzdatei abgeleitet)
 - ZIP (Deflate) mit `index.events.pb`, `index.notes.pb`, `index.attachments.pb`, `index.search.pb`, `notes/…`,
   `attachments/…` (Hintergrund-PDF), `search/…`, `thumbnail.jpg`, `schema.pb` (Schema 24).
@@ -45,7 +54,7 @@ Das Modell (ca. 480 MB) wird erst nach Tipp auf „Lokales KI-Modell laden“ ge
 
 ## Nachgeladene Quellen (nur bei Bedarf)
 - Tesseract.js 7.0.0 inkl. `tesseract.js-core` und Sprachdaten `deu`/`eng` (cdn.jsdelivr.net) – OCR
-- Transformers.js 4.3.2 (cdn.jsdelivr.net) und Modell `onnx-community/Qwen2.5-0.5B-Instruct` (huggingface.co) – lokale KI
+- Transformers.js 4.3.2 (cdn.jsdelivr.net) und Modell `onnx-community/Qwen2.5-0.5B-Instruct` oder `…-1.5B-Instruct` (huggingface.co) – lokale KI
 
 ZIP, LZ4, TPL, Protobuf und PDF sind in der Datei selbst implementiert; kein Tracking, kein Konto.
 
