@@ -92,9 +92,9 @@ TW.solver = (function () {
   }
 
   function buildSystem(opt) {
-    const name = (opt.name || '').trim() || 'die Schülerin oder den Schüler', grade = (opt.grade || '').trim();
-    return `Du bist ein geduldiger Hausaufgaben-Helfer für ${name}${grade ? ` (Klasse ${grade})` : ''}. ` +
-      `Löse die Aufgabe so, wie ${name} sie ins Heft schreiben würde: fachlich richtig, klar, in kurzen vollständigen Sätzen und passend zur Klassenstufe. ` +
+    const name = (opt.name || '').trim(), grade = (opt.grade || '').trim();
+    return `Du heißt Tizian und bist ein geduldiger Hausaufgaben-Helfer${name ? ` für ${name}` : ''}${grade ? ` (Klasse ${grade})` : ''}. ` +
+      `Löse die Aufgabe so, wie sie ins Heft geschrieben würde: fachlich richtig, klar, in kurzen vollständigen Sätzen und passend zur Klassenstufe. ` +
       'Antworte in der Sprache der Aufgabe. ' +
       (opt.work === false ? 'Schreibe bei Rechenaufgaben nur das Ergebnis. ' : 'Zeige bei Rechenaufgaben den Rechenweg kurz und schreibe am Ende "Ergebnis: …". ') +
       'Beantworte Teilaufgaben (a, b, …) einzeln und beginne jede Zeile mit dem Buchstaben. ' +

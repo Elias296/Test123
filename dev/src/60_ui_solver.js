@@ -6,7 +6,8 @@
 const A = window.TWApp.APP, AI = window.TWApp.AI, SV = TW.solver;
 const { $, S, K, LS, esc, toast, confirmDialog, openModal, closeModal } = A;
 const PK = 'tintenwerk.helfer.v1';
-const P = Object.assign({ name: 'Tizian', grade: '', work: true }, LS.get(PK, {}));
+const P = Object.assign({ name: '', grade: '', work: true }, LS.get(PK, {}));
+if (P.name === 'Tizian') P.name = '';          // frühere Voreinstellung: Tizian ist die KI, kein Schülername
 
 /* ---------- Profil ---------- */
 $('#stuName').value = P.name;
@@ -19,13 +20,13 @@ const saveProfile = () => { P.name = $('#stuName').value.trim().slice(0, 40); P.
 function refresh() {
   const ready = AI.state === 'ready';
   $('#btnSolvePages').disabled = $('#btnSolveEditor').disabled = $('#btnSolveStaging').disabled = !ready;
-  $('#solveHint').textContent = !ready ? 'Zuerst oben ein KI-Modell laden (für Aufgaben wird „Besser“ empfohlen).'
-    : AI.loaded === 'schnell' ? 'Modell bereit. Tipp: Das Modell „Besser“ löst Aufgaben zuverlässiger.' : 'Modell bereit.';
+  $('#solveHint').textContent = !ready ? 'Zuerst oben Tizian laden (für Aufgaben wird „Besser“ empfohlen).'
+    : AI.loaded === 'schnell' ? 'Tizian ist bereit. Tipp: Das Modell „Besser“ löst Aufgaben zuverlässiger.' : 'Tizian ist bereit.';
 }
 document.addEventListener('tw-ai-state', refresh); refresh();
 
 /* ---------- Eingänge ---------- */
-$('#btnSolvePages').addEventListener('click', () => { if (AI.state !== 'ready') { toast('Bitte zuerst ein KI-Modell laden.'); return; } $('#solveFile').click(); });
+$('#btnSolvePages').addEventListener('click', () => { if (AI.state !== 'ready') { toast('Bitte zuerst Tizian laden.'); return; } $('#solveFile').click(); });
 $('#solveFile').addEventListener('change', e => { const f = Array.from(e.target.files || []); e.target.value = ''; if (f.length) A.runImport(f, 'solve'); });
 $('#btnSolveEditor').addEventListener('click', () => { const t = S.draft.text.trim(); if (!t) { toast('Der Notiztext ist leer.'); return; } solveText(t, 'Notiztext'); });
 $('#btnSolveStaging').addEventListener('click', () => { const t = $('#stagingText').value.trim(); if (!t) { toast('Das Prüfungsfenster ist leer.'); return; } solveText(t, 'Erkannter Text'); });
@@ -34,7 +35,7 @@ $('#btnSolveStaging').addEventListener('click', () => { const t = $('#stagingTex
 let results = [], stats = null;
 const outEl = $('#solveOut'), tasksEl = $('#solveTasks');
 function solveText(text, info) {
-  if (AI.state !== 'ready') { toast('Bitte zuerst ein KI-Modell laden.'); return; }
+  if (AI.state !== 'ready') { toast('Bitte zuerst Tizian laden.'); return; }
   if (AI.running) { toast('Die KI arbeitet noch. Bitte kurz warten oder abbrechen.'); return; }
   tasksEl.value = text; outEl.value = ''; results = [];
   $('#solveWarn').hidden = true; $('#solveBy').textContent = ''; $('#solveProgress').textContent = info ? '· ' + info : '';
@@ -78,7 +79,7 @@ async function run() {
   $('#solveBy').textContent = `${stats.calc} per Rechner · ${stats.ai} per KI`;
   const w = [];
   if (stats.open.length) w.push(`<b>Nicht lösbar (Bild, Tabelle oder Text fehlt):</b> Aufgabe ${stats.open.map(esc).join(', ')}. Bitte selbst ergänzen.`);
-  w.push('<b>Bitte prüfen:</b> KI-Lösungen können falsch sein, besonders in Mathe, bei Diagrammen und Formeln. Links lässt sich der erkannte Text korrigieren und mit „Erneut lösen“ neu rechnen.');
+  w.push('<b>Bitte prüfen:</b> Tizians Lösungen können falsch sein, besonders in Mathe, bei Diagrammen und Formeln. Links lässt sich der erkannte Text korrigieren und mit „Erneut lösen“ neu rechnen.');
   if (AI.loaded === 'schnell') w.push('Das kleine Modell „Schnell“ löst Aufgaben nur grob – für bessere Ergebnisse „Besser“ laden.');
   $('#solveWarn').innerHTML = w.join('<br>'); $('#solveWarn').hidden = false;
   setBtns(false);

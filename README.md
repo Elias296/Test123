@@ -36,7 +36,7 @@ WebGPU ist in Safari ab iPadOS 26 aktiv (unter iPadOS 18: Einstellungen → Apps
 Das Modell (ca. 480 MB) wird erst nach Tipp auf „Lokales KI-Modell laden“ geholt. Ohne KI funktioniert alles andere unverändert.
 
 ## Aufgaben lösen (Hausaufgaben-Helfer)
-Import & Text → Karte **Aufgaben lösen**: Name (voreingestellt „Tizian“), Klasse und „Rechenweg zeigen“ einstellen, ein KI-Modell laden
+Import & Text → Karte **Aufgaben lösen**: optionalen Namen für die Überschrift, Klasse und „Rechenweg zeigen“ einstellen, **Tizian** (so heißt die lokale KI) laden
 (für Aufgaben wird **Besser · Qwen2.5-1.5B** empfohlen), dann **Buchseite(n) senden & lösen**.
 Ablauf: Zuschnitt → lokale OCR → Aufgaben werden an Nummern („1.“, „2)“, „Aufgabe 3“) getrennt → reine Rechenzeilen (`345 + 678 =`) löst ein exakter
 Rechner, alles andere die lokale KI → Vergleichsfenster (Aufgaben links, Lösungen rechts, beides bearbeitbar, „Erneut lösen“) → Übernahme als neue Notiz
