@@ -301,7 +301,29 @@ function updateWarnings() { $('#warnArea').innerHTML = warnHtml(); }
 A.hook('warn', updateWarnings);
 
 /* ---------- Lokale KI (Transformers.js + WebGPU, nur auf ausdrücklichen Klick) ---------- */
-const AI = { tfUrl: 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.3.2', model: 'onnx-community/Qwen2.5-0.5B-Instruct', dtype: 'q4f16', mb: 480, tf: null, gen: null, gpu: false, state: 'idle', stopper: null, running: false };
+const AI = {
+  tfUrl: 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.3.2',
+  models: {
+    schnell: { id: 'onnx-community/Qwen2.5-0.5B-Instruct', mbF16: 480, mbQ4: 790, name: 'Schnell · Qwen2.5-0.5B' },
+    besser: { id: 'onnx-community/Qwen2.5-1.5B-Instruct', mbF16: 1200, mbQ4: 1400, name: 'Besser · Qwen2.5-1.5B' }
+  },
+  sel: LS.get('tintenwerk.ki.v1', 'schnell'), loaded: null, f16: true, dtype: 'q4f16', tf: null, gen: null, gpu: false, state: 'idle', stopper: null, running: false
+};
+if (!AI.models[AI.sel]) AI.sel = 'schnell';
+window.TWApp.AI = AI;
+const aiMb = () => AI.f16 ? AI.models[AI.sel].mbF16 : AI.models[AI.sel].mbQ4;
+const loadLabel = () => `Lokales KI-Modell laden (ca. ${aiMb() >= 1000 ? (aiMb() / 1000).toFixed(1).replace('.', ',') + ' GB' : aiMb() + ' MB'}, geschätzt)`;
+const aiChanged = () => document.dispatchEvent(new CustomEvent('tw-ai-state'));
+$('#aiModel').innerHTML = Object.entries(AI.models).map(([k, m]) => `<option value="${k}">${esc(m.name)}</option>`).join('');
+$('#aiModel').value = AI.sel;
+$('#aiModel').addEventListener('change', async e => {
+  AI.sel = e.target.value; LS.quiet('tintenwerk.ki.v1', AI.sel);
+  if (AI.state === 'ready' && AI.loaded !== AI.sel) {          // anderes Modell gewählt: altes freigeben, neues muss geladen werden
+    try { if (AI.gen && AI.gen.dispose) await AI.gen.dispose(); } catch (err) { /* egal */ }
+    AI.gen = null; AI.state = 'idle'; AI.loaded = null; $('#btnRewrite').hidden = true; $('#btnLoadModel').hidden = false; $('#modelProg').hidden = true; aiChanged();
+  }
+  $('#btnLoadModel').textContent = loadLabel();
+});
 async function detectGpu() {
   const b = $('#gpuBadge'), btn = $('#btnLoadModel');
   const off = why => { b.className = 'badge off'; b.innerHTML = `<i></i>WebGPU nicht aktiv – KI deaktiviert, Editor &amp; Export voll nutzbar`; btn.disabled = true; btn.title = why; $('#aiError').hidden = false; $('#aiError').innerHTML = why; };
@@ -311,24 +333,24 @@ async function detectGpu() {
     const ad = await navigator.gpu.requestAdapter();
     if (!ad) { off('Es wurde kein WebGPU-Grafikadapter gefunden.'); return; }
     AI.gpu = true;
-    if (!ad.features.has('shader-f16')) { AI.dtype = 'q4'; AI.mb = 790; }
+    AI.f16 = ad.features.has('shader-f16'); AI.dtype = AI.f16 ? 'q4f16' : 'q4';
     const apple = /Mac|iPad|iPhone/.test(navigator.platform || '') || /Macintosh|iPad/.test(navigator.userAgent);
     b.className = 'badge ok'; b.innerHTML = `<i></i>WebGPU verfügbar${apple ? ' (M2 bereit)' : ''}`;
-    btn.disabled = false; btn.textContent = `Lokales KI-Modell laden (ca. ${AI.mb} MB)`;
+    btn.disabled = false; btn.textContent = loadLabel(); aiChanged();
   } catch (e) { off('WebGPU konnte nicht initialisiert werden: ' + esc(e.message || e)); }
 }
 function aiError(msg) { const e = $('#aiError'); e.hidden = !msg; e.textContent = msg || ''; }
 $('#btnLoadModel').addEventListener('click', async () => {
   if (AI.state === 'loading' || AI.state === 'ready') return;
-  if (!(await confirmDialog('Lokales KI-Modell laden?', `Es werden ca. ${AI.mb} MB von huggingface.co heruntergeladen und im Browser-Cache dieses Geräts gespeichert (am besten im WLAN). Die Verarbeitung deiner Texte bleibt danach vollständig lokal.`, 'Jetzt laden'))) return;
-  AI.state = 'loading'; aiError('');
+  if (!(await confirmDialog('Lokales KI-Modell laden?', `Es werden ca. ${aiMb()} MB (geschätzt) von huggingface.co heruntergeladen und im Browser-Cache dieses Geräts gespeichert (am besten im WLAN). Die Verarbeitung deiner Texte bleibt danach vollständig lokal.`, 'Jetzt laden'))) return;
+  AI.state = 'loading'; aiError(''); $('#aiModel').disabled = true;
   const btn = $('#btnLoadModel'); btn.disabled = true; btn.innerHTML = '<span class="spin dark"></span> Modell wird geladen …';
   $('#modelProg').hidden = false; $('#modelBar').style.width = '0%'; $('#modelMsg').textContent = 'Transformers.js wird geladen (cdn.jsdelivr.net) …';
   const files = new Map();
   try {
     if (!AI.tf) AI.tf = await import(AI.tfUrl);
     AI.tf.env.allowLocalModels = false;
-    AI.gen = await AI.tf.pipeline('text-generation', AI.model, {
+    AI.gen = await AI.tf.pipeline('text-generation', AI.models[AI.sel].id, {
       device: 'webgpu', dtype: AI.dtype,
       progress_callback: p => {
         if (p.status === 'progress' && p.file && p.total) {
@@ -340,12 +362,12 @@ $('#btnLoadModel').addEventListener('click', async () => {
         } else if (p.status === 'ready') $('#modelMsg').textContent = 'Modell wird auf der GPU vorbereitet …';
       }
     });
-    AI.state = 'ready';
+    AI.state = 'ready'; AI.loaded = AI.sel; $('#aiModel').disabled = false; aiChanged();
     $('#modelBar').style.width = '100%'; $('#modelMsg').textContent = 'Modell geladen und bereit (läuft lokal über WebGPU).';
     btn.hidden = true; $('#btnRewrite').hidden = false;
   } catch (e) {
-    AI.state = 'idle'; AI.gen = null;
-    $('#modelProg').hidden = true; btn.disabled = false; btn.textContent = `Lokales KI-Modell laden (ca. ${AI.mb} MB)`;
+    AI.state = 'idle'; AI.gen = null; $('#aiModel').disabled = false; aiChanged();
+    $('#modelProg').hidden = true; btn.disabled = false; btn.textContent = loadLabel();
     const m = String((e && e.message) || e);
     aiError(/fetch|network|load failed|import/i.test(m) ? 'Das Modell konnte nicht geladen werden (Netzwerk oder CDN nicht erreichbar). Bitte Verbindung prüfen und erneut versuchen. Details: ' + m
       : /memory|allocation|out of/i.test(m) ? 'Zu wenig freier Speicher für das Modell. Bitte andere Tabs/Apps schließen und erneut versuchen. Details: ' + m

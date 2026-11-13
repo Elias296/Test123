@@ -69,6 +69,7 @@
         </div>
         <div class="row" style="margin-top:10px">
           <button class="btn btn-ghost" id="btnDiscard">Verwerfen</button>
+          <button class="btn" id="btnSolveStaging">Aufgaben lösen</button>
           <button class="btn btn-amber grow" id="btnTake">Übernehmen</button>
         </div>
       </div>
@@ -81,10 +82,13 @@
       </div>
 
       <div class="card">
-        <h3>Natürlicher formulieren <span class="hint" style="font-weight:600">· lokale KI</span></h3>
+        <h3>Lokale KI <span class="hint" style="font-weight:600">· Natürlicher formulieren</span></h3>
         <div class="row" style="margin:6px 0 10px"><span class="badge off" id="gpuBadge"><i></i>WebGPU wird geprüft …</span></div>
         <p class="sub">Formuliert den Entwurf flüssiger und persönlicher – direkt auf dem Gerät. Fakten, Zahlen, Namen und Fachbegriffe sollen erhalten bleiben; ein Fakten-Wächter prüft Zahlen, Namen und Fachbegriffe. Die KI ist optional: Editor, Handschrift und Export funktionieren auch ohne sie.</p>
-        <button class="btn btn-block" id="btnLoadModel" disabled>Lokales KI-Modell laden (ca. 480 MB)</button>
+        <label class="lbl" for="aiModel" style="margin-top:0">Modell</label>
+        <select id="aiModel" class="field" aria-label="KI-Modell"></select>
+        <p class="hint" style="margin:6px 0 10px">„Besser“ löst Aufgaben deutlich zuverlässiger, braucht aber mehr Speicher und Download. Größenangaben sind geschätzt.</p>
+        <button class="btn btn-block" id="btnLoadModel" disabled>Lokales KI-Modell laden</button>
         <div id="modelProg" hidden style="margin-top:10px">
           <div class="progress amber"><i id="modelBar"></i></div>
           <p class="hint" id="modelMsg" style="margin-top:6px">Download startet …</p>
@@ -92,6 +96,21 @@
         <div class="warnbox" id="aiError" hidden style="margin-top:10px"></div>
         <button class="btn btn-amber btn-block" id="btnRewrite" hidden style="margin-top:10px">Entwurf natürlicher formulieren</button>
         <p class="hint" style="margin-top:8px">Kein automatischer Download. Tintenwerk verspricht keine Umgehung von KI-Detektoren – es geht um bessere, eigene Lernnotizen.</p>
+      </div>
+
+      <div class="card" id="solveCard">
+        <h3>Aufgaben lösen <span class="hint" style="font-weight:600">· Hausaufgaben-Helfer</span></h3>
+        <p class="sub">Buchseite fotografieren oder als Screenshot senden: Tintenwerk erkennt die Aufgaben, löst sie mit der lokalen KI und schreibt die Lösungen als Handschrift aufs Blatt. Einfache Rechenzeilen (z. B. <b>345 + 678 =</b>) rechnet ein exakter Taschenrechner statt der KI.</p>
+        <div class="row" style="align-items:flex-end">
+          <div class="grow"><label class="lbl" for="stuName" style="margin-top:0">Für</label><input class="field" id="stuName" type="text" maxlength="40" autocomplete="off" spellcheck="false"></div>
+          <div style="width:110px"><label class="lbl" for="stuGrade" style="margin-top:0">Klasse</label><select class="field" id="stuGrade"></select></div>
+        </div>
+        <label class="switch"><input type="checkbox" id="stuWork"><span>Rechenweg zeigen</span></label>
+        <input type="file" id="solveFile" accept="image/*" multiple hidden>
+        <button class="btn btn-amber btn-block" id="btnSolvePages">Buchseite(n) senden &amp; lösen</button>
+        <button class="btn btn-block" id="btnSolveEditor" style="margin-top:8px">Aufgaben aus dem Notiztext lösen</button>
+        <p class="hint" id="solveHint" style="margin-top:8px">Zuerst oben ein KI-Modell laden.</p>
+        <p class="hint" style="margin-top:6px">Grenzen: Texterkennung statt Bildverständnis – Zeichnungen, Diagramme, handschriftliche Einträge und Formeln werden nicht verstanden. Kleine lokale Modelle machen Fehler, besonders in Mathe. Bitte Lösungen prüfen, bevor sie abgegeben werden.</p>
       </div>
     </section>
 
@@ -266,6 +285,27 @@
   </div>
 </div>
 
+<!-- ============ Aufgaben lösen ============ -->
+<div class="modal" id="solveModal" hidden>
+  <div class="modal-card wide">
+    <div class="modal-head">
+      <h2>Aufgaben lösen <small id="solveProgress"></small></h2>
+      <button class="btn btn-danger" id="solveCancel" hidden>Abbrechen</button>
+    </div>
+    <div class="warnbox cmp-warn" id="solveWarn" hidden></div>
+    <div class="cmp">
+      <div><h4><span>Erkannte Aufgaben (bearbeitbar)</span><button class="btn btn-ghost" id="solveAgain" style="min-height:44px;margin:-10px 0">Erneut lösen</button></h4><textarea id="solveTasks" spellcheck="false"></textarea></div>
+      <div><h4><span>Lösungen (bearbeitbar)</span><span id="solveBy"></span></h4><textarea id="solveOut" spellcheck="false"></textarea></div>
+    </div>
+    <div class="modal-foot">
+      <span class="hint grow">Dein Entwurf bleibt unverändert, bis du eine Übernahme wählst.</span>
+      <button class="btn" id="solveDiscard">Verwerfen</button>
+      <button class="btn" id="solveAppend">An Notiz anhängen</button>
+      <button class="btn btn-primary" id="solveTake">Als neue Notiz übernehmen</button>
+    </div>
+  </div>
+</div>
+
 <!-- ============ Export ============ -->
 <div class="modal" id="exportModal" hidden>
   <div class="modal-card">
@@ -312,7 +352,7 @@
       <ul>
         <li><b>Tesseract.js 7.0.0</b> – Texterkennung (OCR). Quelle: <code>cdn.jsdelivr.net/npm/tesseract.js</code>, dazu WASM-Kern <code>tesseract.js-core</code> und Sprachdaten <code>@tesseract.js-data/deu</code> und <code>/eng</code> (ebenfalls jsDelivr). Wird erst beim ersten Screenshot-Import geladen.</li>
         <li><b>Transformers.js 4.3.2</b> (<code>@huggingface/transformers</code>) – lokale KI über WebGPU. Quelle: <code>cdn.jsdelivr.net</code> (inkl. ONNX-Runtime-WASM). Wird erst nach Tipp auf „Lokales KI-Modell laden“ geladen.</li>
-        <li><b>KI-Modell</b> <code>onnx-community/Qwen2.5-0.5B-Instruct</code> (quantisiertes ONNX). Quelle: <code>huggingface.co</code>. Nur nach deinem ausdrücklichen Klick; danach im Browser-Cache.</li>
+        <li><b>KI-Modell</b> <code>onnx-community/Qwen2.5-0.5B-Instruct</code> (quantisiertes ONNX). Optional <code>onnx-community/Qwen2.5-1.5B-Instruct</code> für bessere Lösungen. Quelle: <code>huggingface.co</code>. Nur nach deinem ausdrücklichen Klick; danach im Browser-Cache.</li>
         <li><b>Keine weitere Bibliothek</b>: ZIP, Apple-LZ4, TPL, Protobuf und PDF erzeugt Tintenwerk mit eigenem Code in dieser Datei (kein JSZip nötig) – der Export funktioniert auch offline.</li>
       </ul>
       <p class="hint">Beim Nachladen sehen die genannten CDNs technisch bedingt deine IP-Adresse; Inhalte deiner Notizen werden dabei nicht übertragen.</p>

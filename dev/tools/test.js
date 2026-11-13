@@ -17,3 +17,21 @@ const TW = require('./t_engine.js');
   console.log('OK LZ4-Fuzz');
   const p = TW.pageUuidPair(); assert.strictEqual(TW.uuidPlusOne('02F50933-3868-4744-A592-0909AFC3EDD2'), '02F50933-3868-4744-A592-0909AFC3EDD3'); assert.strictEqual(TW.uuidPlusOne(p.page), p.notes); console.log('OK UUID+1');
 })().catch(e => { console.error('FEHLER', e.message); process.exit(1); });
+// ---- Aufgaben-Kern
+(() => {
+  const S = TW.solver;
+  const eq = (a, b, m) => assert.deepStrictEqual(a, b, m);
+  eq(S.calcLine('345 + 678 =').result, '1023'); eq(S.calcLine('a) 12 × 7 = ____').result, '84'); eq(S.calcLine('3,5 · 2 =').result, '7');
+  eq(S.calcLine('1.000 : 8 =').result, '125'); eq(S.calcLine('(2 + 3) * 4 =').result, '20'); eq(S.calcLine('7 : 2 =').result, '3,5'); eq(S.calcLine('10 000 + 5 =') , null);
+  eq(S.calcLine('5 / 0 ='), null); eq(S.calcLine('Berechne 3 + 4'), null); eq(S.calcLine('2024 ='), null); eq(S.calcLine('12 - 5 =').result, '7'); eq(S.calcLine('5.000 + 5.000 =').result, '10.000');
+  eq(S.calcTask('a) 3+4 =\nb) 5·6 =\nc) 9-2 ='), ['3+4 = 7', '5·6 = 30', '9-2 = 7']); eq(S.calcTask('a) 3+4 =\nb) Erkläre'), null);
+  eq(S.calcTask('Berechne:\n\n345 + 678 ='), ['345 + 678 = 1023']); eq(S.calcTask('Berechne:\nErkläre warum'), null);
+  const r = S.splitTasks('Lies den Text.\nEr erschien am 12. Januar 1945.\n1. Nenne das Datum.\n2. Was geschah?\na) Erkläre\nb) Begründe\n3) Rechne 3+4 =');
+  eq(r.tasks.map(t => t.label), ['1', '2', '3']); assert(r.context.startsWith('Lies den Text'), 'context'); assert(r.tasks[1].text.includes('b) Begründe'));
+  eq(S.splitTasks('Aufgabe 1: Berechne.\nAufgabe 2: Zeichne.').tasks.map(t => t.label), ['1', '2']);
+  eq(S.splitTasks('Erster Absatz.\n\nZweiter Absatz.').tasks.length, 2); eq(S.splitTasks('Nur ein Text').tasks.length, 1); eq(S.splitTasks('').tasks.length, 0);
+  eq(S.cleanAnswer('## Lösung\n$\\frac{3}{4} \\cdot 2 = 1,5$\n* Punkt **fett**'), 'Lösung\n3/4 · 2 = 1,5\n- Punkt fett'); assert(S.isUnsolvable('[Nicht lösbar: Bild fehlt]'));
+  assert(S.buildSystem({ name: 'Tizian', grade: '7' }).includes('Tizian (Klasse 7)')); assert(!/ sein | ihr | er /.test(S.buildSystem({ name: 'Tizian' })), 'keine Pronomen');
+  eq(S.assemble([{ label: '1', text: 'A' }, { label: '2', text: 'a) x\nb) y' }]), '**1.** A\n\n**2.** \na) x\nb) y');
+  console.log('OK Aufgaben-Kern');
+})();

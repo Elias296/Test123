@@ -430,7 +430,7 @@ async function ensureWorker(onLog) {
 async function stopWorker() { const w = OCR.worker; OCR.worker = null; if (w) { try { await w.terminate(); } catch (e) { /* egal */ } } }
 $('#ocrCancel').addEventListener('click', async () => { OCR.cancelled = true; await stopWorker(); $('#ocrStatus').hidden = true; OCR.busy = false; toast('Texterkennung abgebrochen. Dein Entwurf ist unverändert.'); });
 
-async function runImport(files) {
+async function runImport(files, mode) {
   if (OCR.busy) { toast('Es läuft bereits eine Texterkennung.'); return; }
   const imgs = Array.from(files).filter(f => /^image\//.test(f.type) || /\.(png|jpe?g|heic|webp|gif|bmp)$/i.test(f.name));
   if (!imgs.length) { toast('Keine Bilddatei ausgewählt.'); return; }
@@ -470,6 +470,7 @@ async function runImport(files) {
   $('#ocrStatus').hidden = true;
   if (OCR.cancelled) return;
   if (!texts.length) { toast('Es wurde kein Text erkannt. Ausschnitt größer wählen?', 5000); return; }
+  if (mode === 'solve' && APP.solveText) { APP.solveText(texts.join('\n\n'), `${texts.length} ${texts.length === 1 ? 'Seite' : 'Seiten'} erkannt`); return; }
   const prevText = $('#stagingCard').hidden ? '' : $('#stagingText').value.trim();
   const conf = confN ? ` Erkennungssicherheit laut OCR: ca. ${Math.round(confSum / confN)} %.` : '';
   showStaging((prevText ? prevText + '\n\n' : '') + texts.join('\n\n'), `${texts.length} ${texts.length === 1 ? 'Bild' : 'Bilder'} erkannt.${conf} Bitte prüfen – dein Entwurf bleibt unverändert, bis du „Übernehmen“ tippst.`);
@@ -483,7 +484,7 @@ document.addEventListener('paste', e => {
 });
 
 /* Schnittstellen für die weiteren Teile */
-const APP = { $, $$, clamp, esc, K, LS, IDB, S, SAMPLE_MARK, toast, confirmDialog, openModal, closeModal, downloadBlob, safeName, setMode, setView, relayout, drawSheet, renderPage, snapshot, setDraft, syncDraftUi, saveSettings, syncZoom, showStaging };
+const APP = { runImport, $, $$, clamp, esc, K, LS, IDB, S, SAMPLE_MARK, toast, confirmDialog, openModal, closeModal, downloadBlob, safeName, setMode, setView, relayout, drawSheet, renderPage, snapshot, setDraft, syncDraftUi, saveSettings, syncZoom, showStaging };
 window.TWApp.APP = APP;
 let renderTiles = () => {}, refreshBlattPanel = () => {}, updateWarnings = () => {};
 APP.hook = (name, fn) => { if (name === 'tiles') renderTiles = fn; else if (name === 'blatt') refreshBlattPanel = fn; else if (name === 'warn') updateWarnings = fn; };
