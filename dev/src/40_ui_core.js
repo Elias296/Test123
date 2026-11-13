@@ -7,7 +7,7 @@ const $ = (s, r) => (r || document).querySelector(s);
 const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-const K = { draft: 'tintenwerk.entwurf.v1', undo: 'tintenwerk.undo.v1', settings: 'tintenwerk.einstellungen.v1', own: 'tintenwerk.handschrift.v1', ui: 'tintenwerk.ui.v1' };
+const K = { draft: 'tintenwerk.entwurf.v1', undo: 'tintenwerk.undo.v1', settings: 'tintenwerk.einstellungen.v1', own: 'tintenwerk.handschrift.v1', ui: 'tintenwerk.ui.v1', server: 'tintenwerk.server.v1' };
 
 const SAMPLE_MARK = 'Dies ist eine Beispielnotiz von Tintenwerk.';
 const SAMPLE = {

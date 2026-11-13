@@ -25,7 +25,7 @@ const TW = require('./t_engine.js');
   eq(S.calcLine('1.000 : 8 =').result, '125'); eq(S.calcLine('(2 + 3) * 4 =').result, '20'); eq(S.calcLine('7 : 2 =').result, '3,5'); eq(S.calcLine('10 000 + 5 =') , null);
   eq(S.calcLine('5 / 0 ='), null); eq(S.calcLine('Berechne 3 + 4'), null); eq(S.calcLine('2024 ='), null); eq(S.calcLine('12 - 5 =').result, '7'); eq(S.calcLine('5.000 + 5.000 =').result, '10.000');
   eq(S.calcTask('a) 3+4 =\nb) 5·6 =\nc) 9-2 ='), ['3+4 = 7', '5·6 = 30', '9-2 = 7']); eq(S.calcTask('a) 3+4 =\nb) Erkläre'), null);
-  eq(S.calcTask('Berechne:\n\n345 + 678 ='), ['345 + 678 = 1023']); eq(S.calcTask('Berechne:\nErkläre warum'), null);
+  eq(S.calcTask('Berechne:\n\n345 + 678 ='), ['345 + 678 = 1023']); eq(S.calcTask('Berechne: 12 + 30 ='), ['12 + 30 = 42']); eq(S.calcTask('Rechne aus: (2 + 3) · 4 ='), ['(2 + 3) · 4 = 20']); eq(S.calcTask('Warum: 3 + 4 Äpfel'), null); eq(S.calcTask('Berechne:\nErkläre warum'), null);
   const r = S.splitTasks('Lies den Text.\nEr erschien am 12. Januar 1945.\n1. Nenne das Datum.\n2. Was geschah?\na) Erkläre\nb) Begründe\n3) Rechne 3+4 =');
   eq(r.tasks.map(t => t.label), ['1', '2', '3']); assert(r.context.startsWith('Lies den Text'), 'context'); assert(r.tasks[1].text.includes('b) Begründe'));
   eq(S.splitTasks('Aufgabe 1: Berechne.\nAufgabe 2: Zeichne.').tasks.map(t => t.label), ['1', '2']);

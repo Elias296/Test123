@@ -322,7 +322,7 @@ $('#aiModel').innerHTML = Object.entries(AI.models).map(([k, m]) => `<option val
 $('#aiModel').value = AI.sel;
 $('#aiModel').addEventListener('change', async e => {
   AI.sel = e.target.value; LS.quiet('tintenwerk.ki.v1', AI.sel);
-  if (AI.state === 'ready' && AI.loaded !== AI.sel) { aiKill('Modell gewechselt'); idleUi(); }          // anderes Modell gewählt: Worker beenden, neues muss geladen werden
+  if (AI.state === 'ready' && AI.loaded !== AI.sel && AI.loaded !== 'server') { aiKill('Modell gewechselt'); idleUi(); }          // anderes Modell gewählt: Worker beenden, neues muss geladen werden
   $('#btnLoadModel').textContent = loadLabel();
 });
 async function detectGpu() {
@@ -410,7 +410,7 @@ const runMark = phase => { const o = LS.get(RUN_KEY, {}) || {}; if (phase === nu
   el.innerHTML = (o.phase === 'start'
     ? '<b>Safari hat die Seite beim Start von Tizian neu geladen.</b> Meist reicht dafür der freie Arbeitsspeicher nicht. Der Download ist gesichert und wird nicht wiederholt.'
     : '<b>Die Seite wurde während des Downloads neu geladen.</b> Der Download beginnt beim nächsten Versuch erneut.')
-    + ' Schließe andere Tabs und Apps und tippe noch einmal auf „Text jetzt glätten“.'
+    + ' Schließe andere Tabs und Apps und tippe noch einmal auf „Text jetzt glätten“. Alternative: Tizian auf einem Server laufen lassen (unten „Server statt lokal“).'
     + (n >= 2 && o.phase === 'start' ? ' <b>Nach ' + n + ' Versuchen:</b> Das Modell passt auf diesem Gerät vermutlich nicht in den Speicher von Safari.' : '');
   el.hidden = false;
 })();
@@ -440,6 +440,125 @@ function idleUi() {
   $('#modelProg').hidden = true; $('#btnCancelModel').hidden = true; $('#aiModel').disabled = false;
   aiChanged();
 }
+/* ---------- Server-Modus: Tizian läuft auf einem eigenen Server (OpenAI-kompatible Chat-Schnittstelle) ----------
+   Standardmäßig aus. Eingeschaltet gehen die Texte für Tizian an die eingetragene Adresse – sonst nichts. */
+const SRV = Object.assign({ on: false, url: '', model: '', key: '' }, LS.get(K.server, {}));
+AI.srv = SRV;
+const localGenerate = AI.generate, localInterrupt = AI.interrupt;
+let srvAbort = null;
+function srvEndpoint(u) {
+  u = String(u || '').trim().replace(/\/+$/, '');
+  if (!u) return '';
+  if (!/^https?:\/\//i.test(u)) u = 'https://' + u;
+  if (/\/chat\/completions$/.test(u)) return u;
+  if (/\/v1$/.test(u)) return u + '/chat/completions';
+  return u + '/v1/chat/completions';
+}
+const srvHost = () => { try { return new URL(srvEndpoint(SRV.url)).host; } catch (e) { return SRV.url || 'Server'; } };
+AI.srvHost = srvHost;
+async function serverGenerate(messages, opts, onTok) {
+  const url = srvEndpoint(SRV.url);
+  if (!url) throw new Error('Keine Server-Adresse eingetragen.');
+  srvAbort = new AbortController();
+  const headers = { 'Content-Type': 'application/json' };
+  if (SRV.key) headers.Authorization = 'Bearer ' + SRV.key;
+  const body = { messages, stream: true, temperature: opts && opts.do_sample === false ? 0 : 0.7, max_tokens: (opts && opts.max_new_tokens) || 512 };
+  if (SRV.model) body.model = SRV.model;
+  let resp, text = '';
+  try { resp = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body), signal: srvAbort.signal }); }
+  catch (e) {
+    if (e && e.name === 'AbortError') return { text, interrupted: true };
+    throw new Error(`Server nicht erreichbar (${srvHost()}). Ein schlafender Gratis-Server braucht beim ersten Aufruf 1–2 Minuten – bitte gleich noch einmal versuchen.`);
+  }
+  if (!resp.ok) {
+    let d = ''; try { d = (await resp.text()).replace(/\s+/g, ' ').slice(0, 160); } catch (e) { /* egal */ }
+    const why = resp.status === 401 || resp.status === 403 ? ' – API-Schlüssel prüfen' : resp.status === 404 ? ' – Adresse prüfen' : resp.status >= 500 ? ' – der Server startet evtl. noch, bitte gleich erneut versuchen' : '';
+    throw new Error(`Server-Fehler ${resp.status}${why}${d ? ` (${d})` : ''}`);
+  }
+  if (!/event-stream/i.test(resp.headers.get('content-type') || '')) {          // Server ohne Streaming
+    const j = await resp.json();
+    text = (j && j.choices && j.choices[0] && j.choices[0].message && j.choices[0].message.content) || '';
+    if (text && onTok) onTok(text);
+    return { text, interrupted: false };
+  }
+  const reader = resp.body.getReader(), dec = new TextDecoder();
+  let buf = '';
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buf += dec.decode(value, { stream: true });
+      let i;
+      while ((i = buf.indexOf('\n')) >= 0) {
+        const line = buf.slice(0, i).trim(); buf = buf.slice(i + 1);
+        if (!line.startsWith('data:')) continue;
+        const data = line.slice(5).trim();
+        if (data === '[DONE]') return { text, interrupted: false };
+        try {
+          const j = JSON.parse(data), c = j.choices && j.choices[0];
+          const d = c && ((c.delta && c.delta.content) || (c.message && c.message.content));
+          if (d) { text += d; if (onTok) onTok(d); }
+        } catch (e) { /* unvollständige Zeile */ }
+      }
+    }
+  } catch (e) { if (e && e.name === 'AbortError') return { text, interrupted: true }; throw e; }
+  return { text, interrupted: false };
+}
+AI.generate = (messages, opts, onTok) => SRV.on ? serverGenerate(messages, opts, onTok) : localGenerate(messages, opts, onTok);
+AI.interrupt = () => { if (SRV.on) { if (srvAbort) srvAbort.abort(); } else localInterrupt(); };
+function saveSrv() { LS.quiet(K.server, SRV); }
+function applyServer() {
+  const on = SRV.on && !!srvEndpoint(SRV.url);
+  if (on) {
+    if (AI.worker) aiKill('Server-Modus');                 // lokales Modell freigeben
+    AI.state = 'ready'; AI.loaded = 'server';
+    $('#modelProg').hidden = true; $('#btnCancelModel').hidden = true; $('#aiCrash').hidden = true;
+  } else if (AI.loaded === 'server') { AI.state = 'idle'; AI.loaded = null; idleUi(); }
+  $('#srvOn').checked = on;
+  aiChanged();
+}
+document.addEventListener('tw-ai-state', () => {
+  const b = $('#gpuBadge'), on = SRV.on && AI.loaded === 'server';
+  if (on) {
+    if (!AI.gpuBadge) AI.gpuBadge = [b.className, b.innerHTML, b.title];
+    b.className = 'badge'; b.innerHTML = '<i></i>Server'; b.title = 'Tizian läuft auf ' + srvHost();
+  } else if (AI.gpuBadge) { [b.className, b.innerHTML, b.title] = AI.gpuBadge; AI.gpuBadge = null; }
+  $('#localOpts').hidden = on;
+  $('#aiOne').textContent = on ? `Läuft auf deinem Server (${srvHost()}) – Texte werden dorthin gesendet.` : 'Lokale KI: macht deinen Text flüssiger, direkt auf dem iPad.';
+  const err = $('#aiError'); if (on) err.hidden = true; else if (!AI.gpu && err.textContent) err.hidden = false;
+  $('#srvBadge').hidden = !on;
+});
+$('#srvUrl').value = SRV.url; $('#srvModel').value = SRV.model; $('#srvKey').value = SRV.key;
+['srvUrl', 'srvModel', 'srvKey'].forEach(id => $('#' + id).addEventListener('change', e => {
+  SRV[{ srvUrl: 'url', srvModel: 'model', srvKey: 'key' }[id]] = e.target.value.trim(); saveSrv();
+  if (SRV.on && !srvEndpoint(SRV.url)) { SRV.on = false; saveSrv(); }
+  applyServer();
+}));
+$('#srvOn').addEventListener('change', async e => {
+  if (!e.target.checked) { SRV.on = false; saveSrv(); applyServer(); toast('Server-Modus aus. Tizian arbeitet wieder lokal.'); return; }
+  SRV.url = $('#srvUrl').value.trim(); SRV.model = $('#srvModel').value.trim(); SRV.key = $('#srvKey').value.trim();
+  if (!srvEndpoint(SRV.url)) { e.target.checked = false; toast('Bitte zuerst die Server-Adresse eintragen.'); $('#srvUrl').focus(); return; }
+  const ok = await confirmDialog('Texte an einen Server senden?',
+    `Solange der Server-Modus an ist, gehen die Texte, die Tizian glätten oder lösen soll, an:\n${srvHost()}\n\nDort werden sie verarbeitet – sie verlassen also dein iPad. Nutze nur einen Server, dem du vertraust, am besten deinen eigenen. Ein API-Schlüssel wird nur auf diesem Gerät gespeichert.`, 'Server nutzen');
+  if (!ok) { e.target.checked = false; return; }
+  SRV.on = true; saveSrv(); applyServer(); toast(`Tizian läuft jetzt auf ${srvHost()}.`);
+});
+$('#srvTest').addEventListener('click', async e => {
+  const b = e.currentTarget, st = $('#srvStatus');
+  const saved = { on: SRV.on };
+  SRV.url = $('#srvUrl').value.trim(); SRV.model = $('#srvModel').value.trim(); SRV.key = $('#srvKey').value.trim(); saveSrv();
+  if (!srvEndpoint(SRV.url)) { st.textContent = 'Bitte zuerst die Server-Adresse eintragen.'; return; }
+  b.disabled = true; b.innerHTML = '<span class="spin dark"></span> Verbindung wird getestet …'; st.textContent = '';
+  const t0 = performance.now();
+  try {
+    const r = await serverGenerate([{ role: 'user', content: 'Antworte nur mit dem Wort: OK' }], { max_new_tokens: 8, do_sample: false });
+    st.textContent = `Verbunden mit ${srvHost()} (${((performance.now() - t0) / 1000).toFixed(1)} s). Antwort: „${(r.text || '').trim().slice(0, 40)}“` + (saved.on ? '' : ' – jetzt oben „Text auf Server verarbeiten“ einschalten.');
+  } catch (err) { st.textContent = String((err && err.message) || err); }
+  b.disabled = false; b.textContent = 'Verbindung testen';
+});
+A.infoFill.ki = el => {
+  $('#gpuDetail', el).textContent = SRV.on && AI.loaded === 'server' ? `Server-Modus aktiv: Texte für Tizian gehen an ${srvHost()}.` : (AI.gpuDetail || 'WebGPU wird geprüft …');
+};
 function onWorkerMessage(m) {
   if (m.t === 'log') aiLog(m.m);
   else if (m.t === 'phase') { AI.phase = m.p; AI.cached = !!m.cached; runMark(m.p); aiLog(m.cached ? 'Starte Tizian aus dem gesicherten Download' : 'Starte Tizian'); updateLoadMsg(); }
@@ -561,10 +680,9 @@ function showFactWarn() {
 }
 $('#cmpAi').addEventListener('input', showFactWarn);
 /* Ein Knopf für alles: ist Tizian noch nicht geladen, startet der Tipp das Laden und glättet danach automatisch */
-A.infoFill.ki = el => { $('#gpuDetail', el).textContent = AI.gpuDetail || 'WebGPU wird geprüft …'; };
 document.addEventListener('tw-ai-state', () => {
   const b = $('#btnRewrite'), loading = AI.state === 'loading';
-  b.disabled = !AI.gpu || loading;
+  b.disabled = !(AI.gpu || (SRV.on && AI.loaded === 'server')) || loading;
   b.innerHTML = loading ? '<span class="spin"></span> Tizian wird geladen …' : 'Text jetzt glätten';
 });
 $('#btnRewrite').addEventListener('click', async () => {
@@ -729,6 +847,7 @@ window.TWApp.termCheck = termCheck;
 
 /* ---------- Datenschutz & Speicher ---------- */
 async function refreshSettingsModal() {
+  const ps = $('#privServer'); ps.hidden = !(SRV.on && AI.loaded === 'server'); ps.innerHTML = `<b>Server-Modus ist an:</b> Texte, die Tizian bearbeiten soll, gehen an <code>${esc(srvHost())}</code>. Ausschalten unter Text &amp; KI → Tizian → „Server statt lokal“.`;
   let bytes = 0;
   for (const k of Object.values(K)) { try { const v = localStorage.getItem(k); if (v) bytes += v.length * 2; } catch (e) { /* egal */ } }
   let extra = '';
@@ -783,6 +902,7 @@ function init() {
   refreshBlattPanel();
   A.relayout(true);
   detectGpu();
+  if (SRV.on) applyServer();
   IDB.get('own').then(o => {
     if (o && o.glyphs && Object.keys(o.glyphs).length >= Object.keys(S.own.glyphs).length) { S.own = o; renderTiles(); refreshBlattPanel(); A.relayout(true); }
     else if (Object.keys(S.own.glyphs).length) IDB.set('own', S.own).catch(() => {});        // ältere Kopie aus localStorage übernehmen

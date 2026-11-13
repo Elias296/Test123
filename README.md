@@ -44,6 +44,14 @@ oder angehängt (mit Undo) → Vektor-Handschrift im Goodnotes-Export.
 Grenzen: nur Texterkennung (keine Bilder, Diagramme, Handschrift, Formeln), kleine Modelle machen Fehler; die Größenangaben der Modelle sind geschätzt
 und das 1,5-B-Modell wurde nicht auf einem iPad getestet (Speicherbedarf!).
 
+## Tizian auf einem Server (für Geräte, auf denen die lokale KI nicht startet)
+Text & KI → Tizian → **Server statt lokal**: Adresse eintragen, **Verbindung testen**, dann **Text auf Server verarbeiten**
+einschalten (standardmäßig aus, mit Datenschutz-Abfrage). Unterstützt wird jede OpenAI-kompatible Chat-Schnittstelle
+(`/v1/chat/completions`, mit Streaming). Im Server-Modus gehen nur die Texte für Tizian an den Server; Handschrift,
+Texterkennung und Export bleiben lokal.
+Kostenloser Server: eigener Hugging-Face-Space mit der Vorlage in [`server/huggingface-space`](server/huggingface-space/README.md)
+(llama.cpp + Qwen2.5-1.5B, Gratis-CPU, langsamer als eine GPU, schläft nach längerer Pause ein).
+
 ## Technische Eckdaten des .goodnotes-Exports (aus der Referenzdatei abgeleitet)
 - ZIP (Deflate) mit `index.events.pb`, `index.notes.pb`, `index.attachments.pb`, `index.search.pb`, `notes/…`,
   `attachments/…` (Hintergrund-PDF), `search/…`, `thumbnail.jpg`, `schema.pb` (Schema 24).
@@ -66,6 +74,6 @@ Hochzahlen: `x^2`, `x2`, `cm3` werden zu x², x², cm³ (abschaltbar im ⓘ der 
 
 ## Entwicklung
 - Quellen: `dev/src/` · Bauen: `dev/tools/build.sh` (schreibt `Tintenwerk.html`) · Tests: `node dev/tools/test.js`
-- Browser-Tests (Playwright, lokaler Server auf Port 8765): `node dev/tools/e2e-ui.js`, `node dev/tools/e2e-solver.js`
+- Browser-Tests (Playwright, lokaler Server auf Port 8765): `node dev/tools/e2e-ui.js`, `e2e-server.js`, `e2e-cache.js`, `e2e-solver.js`
 - `dev/tools/shape.py` vergleicht eine erzeugte `.goodnotes` strukturell mit einer Referenzdatei (`python3 -I dev/tools/shape.py ref.goodnotes out.goodnotes`).
 - Änderungen immer in `dev/src/` machen und neu bauen, nicht in `Tintenwerk.html`.

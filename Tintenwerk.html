@@ -128,6 +128,8 @@ details.fold>summary::-webkit-details-marker{display:none}
 details.fold>summary::after{content:"";margin-left:auto;width:8px;height:8px;border-right:2px solid #9CA3AF;border-bottom:2px solid #9CA3AF;transform:rotate(45deg);transition:transform .15s}
 details.fold[open]>summary::after{transform:rotate(-135deg)}
 details.fold>.fold-body{padding:0 0 16px}
+details.fold:not(:last-child){margin-bottom:0}
+details.fold+details.fold{margin-top:0}
 pre.log{white-space:pre-wrap;word-break:break-word;background:var(--fill);border-radius:10px;padding:8px 10px;margin:8px 0 0;font:11.5px/1.45 ui-monospace,Menlo,monospace;color:var(--muted);min-height:20px}
 pre.log:empty{display:none}
 
@@ -311,8 +313,8 @@ pre.log:empty{display:none}
       </div>
 
       <div class="card" id="aiCard">
-        <div class="card-h"><h3>Tizian</h3><span class="badge off" id="gpuBadge"><i></i>wird geprüft</span><span class="grow"></span><button class="info" data-info="ki" aria-label="Info zur lokalen KI">ⓘ</button></div>
-        <p class="one">Lokale KI: macht deinen Text flüssiger, direkt auf dem iPad.</p>
+        <div class="card-h"><h3>Tizian</h3><span class="badge off" id="gpuBadge"><i></i>wird geprüft</span><span class="badge warn" id="srvBadge" hidden title="Texte werden an deinen Server gesendet">Texte verlassen das Gerät</span><span class="grow"></span><button class="info" data-info="ki" aria-label="Info zur lokalen KI">ⓘ</button></div>
+        <p class="one" id="aiOne">Lokale KI: macht deinen Text flüssiger, direkt auf dem iPad.</p>
         <button class="btn btn-primary btn-block" id="btnRewrite" disabled>Text jetzt glätten</button>
         <div id="modelProg" hidden style="margin-top:12px">
           <div class="progress thin"><i id="modelBar"></i></div>
@@ -322,13 +324,28 @@ pre.log:empty{display:none}
         <div class="warnbox" id="aiError" hidden style="margin-top:12px"></div>
         <details class="fold" id="aiHelp">
           <summary>Modell &amp; Optionen</summary>
-          <div class="fold-body">
+          <div class="fold-body" id="localOpts">
             <label class="lbl" for="aiModel">Modell</label>
             <select id="aiModel" class="field" aria-label="KI-Modell"></select>
             <button class="btn btn-block" id="btnLoadModel" disabled style="margin-top:10px">Tizian laden</button>
             <label class="switch" style="margin-top:6px"><input type="checkbox" id="aiNoCache"><span>Ohne Sicherung im Cache laden</span></label>
             <label class="switch"><input type="checkbox" id="aiCompat"><span>Kompatibilitätsmodus (q4)</span></label>
             <pre id="aiLogText" class="log"></pre>
+          </div>
+        </details>
+        <details class="fold" id="srvFold">
+          <summary>Server statt lokal</summary>
+          <div class="fold-body">
+            <p class="hint" style="margin-bottom:6px">Für Geräte, auf denen Tizian lokal nicht startet. Anleitung für einen kostenlosen Server: ⓘ</p>
+            <label class="switch"><input type="checkbox" id="srvOn"><span>Text auf Server verarbeiten</span></label>
+            <label class="lbl" for="srvUrl">Server-Adresse</label>
+            <input class="field" id="srvUrl" type="url" inputmode="url" placeholder="https://name-tizian.hf.space" autocomplete="off" autocapitalize="off" spellcheck="false">
+            <label class="lbl" for="srvModel">Modellname (optional)</label>
+            <input class="field" id="srvModel" type="text" placeholder="nur nötig, wenn der Server es verlangt" autocomplete="off" autocapitalize="off" spellcheck="false">
+            <label class="lbl" for="srvKey">API-Schlüssel (optional)</label>
+            <input class="field" id="srvKey" type="password" autocomplete="off" placeholder="wird nur auf diesem Gerät gespeichert">
+            <div class="row" style="margin-top:10px;flex-wrap:nowrap"><button class="btn grow" id="srvTest">Verbindung testen</button><button class="info" data-info="server" aria-label="Anleitung für einen kostenlosen Server" style="margin:0">ⓘ</button></div>
+            <p class="hint" id="srvStatus" style="margin-top:8px"></p>
           </div>
         </details>
       </div>
@@ -440,7 +457,8 @@ pre.log:empty{display:none}
 <div class="pop" id="pop" hidden role="dialog"></div>
 <template id="info-text"><h4>Formatierung</h4><ul><li><code># Titel</code>, <code>## Abschnitt</code> – Überschriften</li><li><code>- Punkt</code> oder <code>1. Punkt</code> – Listen</li><li>Leerzeile – neuer Absatz</li><li><code>**fett**</code> – kräftiger Strich</li><li><code>a | b | c</code> – Tabellenzeile</li><li><code>x^2</code> oder <code>x2</code> wird zu x²</li></ul><label class="switch"><input type="checkbox" data-opt="autoSup"><span>Hochzahlen automatisch setzen</span></label><p>Der Text wird automatisch lokal gespeichert.</p></template>
 <template id="info-ocr"><h4>Texterkennung</h4><p>Läuft vollständig im Browser mit Tesseract.js (Deutsch + Englisch). Es wird nur der zugeschnittene Ausschnitt verarbeitet.</p><p>Formeln und komplexe Tabellen werden nur als einfacher Text erkannt – bitte prüfen.</p></template>
-<template id="info-ki"><h4>Tizian – lokale KI</h4><p id="gpuDetail"></p><ul><li>Läuft über WebGPU auf dem Gerät, Texte verlassen das iPad nicht.</li><li>Das Modell wird erst nach deinem Tipp geladen (kein automatischer Download).</li><li>Ein Fakten-Wächter vergleicht Zahlen, Namen und Fachbegriffe mit dem Original.</li><li>Der Entwurf ändert sich erst mit „Tizians Fassung übernehmen“.</li></ul><p>Tintenwerk verspricht keine Umgehung von KI-Detektoren – es geht um bessere, eigene Notizen. Editor, Handschrift und Export funktionieren auch ohne KI.</p></template>
+<template id="info-ki"><h4>Tizian – lokale KI</h4><p id="gpuDetail"></p><ul><li>Läuft über WebGPU auf dem Gerät, Texte verlassen das iPad nicht – außer du schaltest „Text auf Server verarbeiten“ ein.</li><li>Das Modell wird erst nach deinem Tipp geladen (kein automatischer Download).</li><li>Ein Fakten-Wächter vergleicht Zahlen, Namen und Fachbegriffe mit dem Original.</li><li>Der Entwurf ändert sich erst mit „Tizians Fassung übernehmen“.</li></ul><p>Tintenwerk verspricht keine Umgehung von KI-Detektoren – es geht um bessere, eigene Notizen. Editor, Handschrift und Export funktionieren auch ohne KI.</p></template>
+<template id="info-server"><h4>Tizian auf einem Server</h4><p>Die App spricht jede <b>OpenAI-kompatible</b> Chat-Schnittstelle an (<code>/v1/chat/completions</code>).</p><p><b>Kostenlos:</b> einen eigenen Hugging-Face-Space mit der Vorlage aus dem Tintenwerk-Repository (<code>server/huggingface-space</code>) anlegen. Läuft auf der Gratis-CPU, antwortet langsamer als lokal und schläft nach längerer Pause ein – der erste Aufruf danach dauert 1–2 Minuten.</p><p>Im Server-Modus verlassen die Texte für Tizian das iPad. Alles andere (Handschrift, Export, Texterkennung) bleibt lokal.</p></template>
 <template id="info-solve"><h4>Aufgaben lösen</h4><p>Buchseite fotografieren oder Screenshot senden → Zuschnitt → Texterkennung → Tizian löst jede Aufgabe. Reine Rechenzeilen wie <code>345 + 678 =</code> rechnet ein exakter Rechner.</p><p><b>Grenzen:</b> nur Text, kein Bildverständnis (Zeichnungen, Diagramme, Formeln). Kleine lokale Modelle machen Fehler, besonders in Mathe. Bitte Lösungen prüfen.</p></template>
 <template id="info-style"><h4>Schriftstile</h4><p>Alle Stile bestehen aus echten Vektor-Stiftpfaden. In Goodnotes lässt sich die Schrift mit Lasso und Radierer bearbeiten.</p><p>Bei „Meine eigene Handschrift“ werden fehlende Zeichen durch die Standardschrift ergänzt.</p></template>
 <template id="info-studio"><h4>Zeichenstudio</h4><p>Zeichen antippen und mit dem Apple Pencil schreiben. Gespeichert werden Stiftpfade mit Druck, relativ zur Grundlinie.</p><p>iPadOS kann lokale Browserdaten nach längerer Inaktivität löschen – sichere deine Handschrift unter „Sicherung“ als JSON.</p></template>
@@ -581,7 +599,8 @@ pre.log:empty{display:none}
     <div class="modal-head"><h2>Datenschutz &amp; Speicher</h2><button class="btn" data-close>Schließen</button></div>
     <div class="modal-body">
       <h4>Alles bleibt auf deinem Gerät</h4>
-      <p>Entwurf, Undo-Stand und Einstellungen liegen im lokalen Browserspeicher (<code>localStorage</code>), deine eigene Handschrift zusätzlich in <code>IndexedDB</code> dieses Geräts. Es gibt kein Konto, kein Tracking, keine Analyse-Skripte und keinen Server von Tintenwerk. Screenshots, OCR-Text und KI-Verarbeitung verlassen das iPad nicht.</p>
+      <p>Entwurf, Undo-Stand und Einstellungen liegen im lokalen Browserspeicher (<code>localStorage</code>), deine eigene Handschrift zusätzlich in <code>IndexedDB</code> dieses Geräts. Es gibt kein Konto, kein Tracking, keine Analyse-Skripte und keinen Server von Tintenwerk. Screenshots, OCR-Text und KI-Verarbeitung verlassen das iPad nicht – Ausnahme: der Server-Modus von Tizian, wenn du ihn einschaltest.</p>
+      <div class="warnbox" id="privServer" hidden style="margin-top:8px"></div>
       <p id="storageInfo" class="hint" style="margin-top:6px"></p>
       <div class="warnbox" style="margin-top:10px"><b>Wichtig für iPadOS:</b> Safari kann lokale Browserdaten bereinigen, wenn eine Website längere Zeit (ca. 7 Tage) nicht genutzt wird. Sichere deine eigene Handschrift deshalb als JSON-Datei (Schritt 2 → Sicherung). Zum Home-Bildschirm hinzugefügte Web-Apps sind davon in der Regel ausgenommen.</div>
 
@@ -597,6 +616,7 @@ pre.log:empty{display:none}
       <ul>
         <li><b>Tesseract.js 7.0.0</b> – Texterkennung (OCR). Quelle: <code>cdn.jsdelivr.net/npm/tesseract.js</code>, dazu WASM-Kern <code>tesseract.js-core</code> und Sprachdaten <code>@tesseract.js-data/deu</code> und <code>/eng</code> (ebenfalls jsDelivr). Wird erst beim ersten Screenshot-Import geladen.</li>
         <li><b>Transformers.js 4.3.2</b> (<code>@huggingface/transformers</code>) – lokale KI über WebGPU. Quelle: <code>cdn.jsdelivr.net</code> (inkl. ONNX-Runtime-WASM). Wird erst nach Tipp auf „Lokales KI-Modell laden“ geladen.</li>
+        <li><b>Optionaler Server</b> – nur wenn du „Text auf Server verarbeiten“ einschaltest: die von dir eingetragene Adresse (z. B. dein Hugging-Face-Space). Dorthin gehen ausschließlich die Texte, die Tizian bearbeiten soll.</li>
         <li><b>KI-Modell</b> <code>onnx-community/Qwen2.5-0.5B-Instruct</code> (quantisiertes ONNX). Optional <code>onnx-community/Qwen2.5-1.5B-Instruct</code> für bessere Lösungen. Quelle: <code>huggingface.co</code>. Nur nach deinem ausdrücklichen Klick; danach im Browser-Cache.</li>
         <li><b>Keine weitere Bibliothek</b>: ZIP, Apple-LZ4, TPL, Protobuf und PDF erzeugt Tintenwerk mit eigenem Code in dieser Datei (kein JSZip nötig) – der Export funktioniert auch offline.</li>
       </ul>
@@ -1843,7 +1863,8 @@ TW.solver = (function () {
   }
   /* Eine Aufgabe, die nur aus Rechenzeilen besteht (z. B. "a) 3+4 =\nb) 5·6 =") → Zeilen mit Ergebnis oder null */
   function calcTask(text) {
-    let lines = String(text || '').split('\n').map(s => s.trim()).filter(Boolean);
+    let lines = String(text || '').split('\n').map(s => s.trim()).filter(Boolean)
+      .map(l => l.replace(/^[A-Za-zÄÖÜäöüß ]{3,40}:\s*(?=[\d(−-])/, ''));          // "Berechne: 12 + 30 =" -> "12 + 30 ="
     if (lines.some(l => calcLine(l))) lines = lines.filter(l => !(l.length < 45 && !/\d/.test(l) && /:$/.test(l)));    // Anweisungszeile wie "Berechne:" überspringen
     if (!lines.length || lines.length > 12) return null;
     const out = [];
@@ -1897,7 +1918,7 @@ const $ = (s, r) => (r || document).querySelector(s);
 const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-const K = { draft: 'tintenwerk.entwurf.v1', undo: 'tintenwerk.undo.v1', settings: 'tintenwerk.einstellungen.v1', own: 'tintenwerk.handschrift.v1', ui: 'tintenwerk.ui.v1' };
+const K = { draft: 'tintenwerk.entwurf.v1', undo: 'tintenwerk.undo.v1', settings: 'tintenwerk.einstellungen.v1', own: 'tintenwerk.handschrift.v1', ui: 'tintenwerk.ui.v1', server: 'tintenwerk.server.v1' };
 
 const SAMPLE_MARK = 'Dies ist eine Beispielnotiz von Tintenwerk.';
 const SAMPLE = {
@@ -2746,7 +2767,7 @@ $('#aiModel').innerHTML = Object.entries(AI.models).map(([k, m]) => `<option val
 $('#aiModel').value = AI.sel;
 $('#aiModel').addEventListener('change', async e => {
   AI.sel = e.target.value; LS.quiet('tintenwerk.ki.v1', AI.sel);
-  if (AI.state === 'ready' && AI.loaded !== AI.sel) { aiKill('Modell gewechselt'); idleUi(); }          // anderes Modell gewählt: Worker beenden, neues muss geladen werden
+  if (AI.state === 'ready' && AI.loaded !== AI.sel && AI.loaded !== 'server') { aiKill('Modell gewechselt'); idleUi(); }          // anderes Modell gewählt: Worker beenden, neues muss geladen werden
   $('#btnLoadModel').textContent = loadLabel();
 });
 async function detectGpu() {
@@ -2834,7 +2855,7 @@ const runMark = phase => { const o = LS.get(RUN_KEY, {}) || {}; if (phase === nu
   el.innerHTML = (o.phase === 'start'
     ? '<b>Safari hat die Seite beim Start von Tizian neu geladen.</b> Meist reicht dafür der freie Arbeitsspeicher nicht. Der Download ist gesichert und wird nicht wiederholt.'
     : '<b>Die Seite wurde während des Downloads neu geladen.</b> Der Download beginnt beim nächsten Versuch erneut.')
-    + ' Schließe andere Tabs und Apps und tippe noch einmal auf „Text jetzt glätten“.'
+    + ' Schließe andere Tabs und Apps und tippe noch einmal auf „Text jetzt glätten“. Alternative: Tizian auf einem Server laufen lassen (unten „Server statt lokal“).'
     + (n >= 2 && o.phase === 'start' ? ' <b>Nach ' + n + ' Versuchen:</b> Das Modell passt auf diesem Gerät vermutlich nicht in den Speicher von Safari.' : '');
   el.hidden = false;
 })();
@@ -2864,6 +2885,125 @@ function idleUi() {
   $('#modelProg').hidden = true; $('#btnCancelModel').hidden = true; $('#aiModel').disabled = false;
   aiChanged();
 }
+/* ---------- Server-Modus: Tizian läuft auf einem eigenen Server (OpenAI-kompatible Chat-Schnittstelle) ----------
+   Standardmäßig aus. Eingeschaltet gehen die Texte für Tizian an die eingetragene Adresse – sonst nichts. */
+const SRV = Object.assign({ on: false, url: '', model: '', key: '' }, LS.get(K.server, {}));
+AI.srv = SRV;
+const localGenerate = AI.generate, localInterrupt = AI.interrupt;
+let srvAbort = null;
+function srvEndpoint(u) {
+  u = String(u || '').trim().replace(/\/+$/, '');
+  if (!u) return '';
+  if (!/^https?:\/\//i.test(u)) u = 'https://' + u;
+  if (/\/chat\/completions$/.test(u)) return u;
+  if (/\/v1$/.test(u)) return u + '/chat/completions';
+  return u + '/v1/chat/completions';
+}
+const srvHost = () => { try { return new URL(srvEndpoint(SRV.url)).host; } catch (e) { return SRV.url || 'Server'; } };
+AI.srvHost = srvHost;
+async function serverGenerate(messages, opts, onTok) {
+  const url = srvEndpoint(SRV.url);
+  if (!url) throw new Error('Keine Server-Adresse eingetragen.');
+  srvAbort = new AbortController();
+  const headers = { 'Content-Type': 'application/json' };
+  if (SRV.key) headers.Authorization = 'Bearer ' + SRV.key;
+  const body = { messages, stream: true, temperature: opts && opts.do_sample === false ? 0 : 0.7, max_tokens: (opts && opts.max_new_tokens) || 512 };
+  if (SRV.model) body.model = SRV.model;
+  let resp, text = '';
+  try { resp = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body), signal: srvAbort.signal }); }
+  catch (e) {
+    if (e && e.name === 'AbortError') return { text, interrupted: true };
+    throw new Error(`Server nicht erreichbar (${srvHost()}). Ein schlafender Gratis-Server braucht beim ersten Aufruf 1–2 Minuten – bitte gleich noch einmal versuchen.`);
+  }
+  if (!resp.ok) {
+    let d = ''; try { d = (await resp.text()).replace(/\s+/g, ' ').slice(0, 160); } catch (e) { /* egal */ }
+    const why = resp.status === 401 || resp.status === 403 ? ' – API-Schlüssel prüfen' : resp.status === 404 ? ' – Adresse prüfen' : resp.status >= 500 ? ' – der Server startet evtl. noch, bitte gleich erneut versuchen' : '';
+    throw new Error(`Server-Fehler ${resp.status}${why}${d ? ` (${d})` : ''}`);
+  }
+  if (!/event-stream/i.test(resp.headers.get('content-type') || '')) {          // Server ohne Streaming
+    const j = await resp.json();
+    text = (j && j.choices && j.choices[0] && j.choices[0].message && j.choices[0].message.content) || '';
+    if (text && onTok) onTok(text);
+    return { text, interrupted: false };
+  }
+  const reader = resp.body.getReader(), dec = new TextDecoder();
+  let buf = '';
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buf += dec.decode(value, { stream: true });
+      let i;
+      while ((i = buf.indexOf('\n')) >= 0) {
+        const line = buf.slice(0, i).trim(); buf = buf.slice(i + 1);
+        if (!line.startsWith('data:')) continue;
+        const data = line.slice(5).trim();
+        if (data === '[DONE]') return { text, interrupted: false };
+        try {
+          const j = JSON.parse(data), c = j.choices && j.choices[0];
+          const d = c && ((c.delta && c.delta.content) || (c.message && c.message.content));
+          if (d) { text += d; if (onTok) onTok(d); }
+        } catch (e) { /* unvollständige Zeile */ }
+      }
+    }
+  } catch (e) { if (e && e.name === 'AbortError') return { text, interrupted: true }; throw e; }
+  return { text, interrupted: false };
+}
+AI.generate = (messages, opts, onTok) => SRV.on ? serverGenerate(messages, opts, onTok) : localGenerate(messages, opts, onTok);
+AI.interrupt = () => { if (SRV.on) { if (srvAbort) srvAbort.abort(); } else localInterrupt(); };
+function saveSrv() { LS.quiet(K.server, SRV); }
+function applyServer() {
+  const on = SRV.on && !!srvEndpoint(SRV.url);
+  if (on) {
+    if (AI.worker) aiKill('Server-Modus');                 // lokales Modell freigeben
+    AI.state = 'ready'; AI.loaded = 'server';
+    $('#modelProg').hidden = true; $('#btnCancelModel').hidden = true; $('#aiCrash').hidden = true;
+  } else if (AI.loaded === 'server') { AI.state = 'idle'; AI.loaded = null; idleUi(); }
+  $('#srvOn').checked = on;
+  aiChanged();
+}
+document.addEventListener('tw-ai-state', () => {
+  const b = $('#gpuBadge'), on = SRV.on && AI.loaded === 'server';
+  if (on) {
+    if (!AI.gpuBadge) AI.gpuBadge = [b.className, b.innerHTML, b.title];
+    b.className = 'badge'; b.innerHTML = '<i></i>Server'; b.title = 'Tizian läuft auf ' + srvHost();
+  } else if (AI.gpuBadge) { [b.className, b.innerHTML, b.title] = AI.gpuBadge; AI.gpuBadge = null; }
+  $('#localOpts').hidden = on;
+  $('#aiOne').textContent = on ? `Läuft auf deinem Server (${srvHost()}) – Texte werden dorthin gesendet.` : 'Lokale KI: macht deinen Text flüssiger, direkt auf dem iPad.';
+  const err = $('#aiError'); if (on) err.hidden = true; else if (!AI.gpu && err.textContent) err.hidden = false;
+  $('#srvBadge').hidden = !on;
+});
+$('#srvUrl').value = SRV.url; $('#srvModel').value = SRV.model; $('#srvKey').value = SRV.key;
+['srvUrl', 'srvModel', 'srvKey'].forEach(id => $('#' + id).addEventListener('change', e => {
+  SRV[{ srvUrl: 'url', srvModel: 'model', srvKey: 'key' }[id]] = e.target.value.trim(); saveSrv();
+  if (SRV.on && !srvEndpoint(SRV.url)) { SRV.on = false; saveSrv(); }
+  applyServer();
+}));
+$('#srvOn').addEventListener('change', async e => {
+  if (!e.target.checked) { SRV.on = false; saveSrv(); applyServer(); toast('Server-Modus aus. Tizian arbeitet wieder lokal.'); return; }
+  SRV.url = $('#srvUrl').value.trim(); SRV.model = $('#srvModel').value.trim(); SRV.key = $('#srvKey').value.trim();
+  if (!srvEndpoint(SRV.url)) { e.target.checked = false; toast('Bitte zuerst die Server-Adresse eintragen.'); $('#srvUrl').focus(); return; }
+  const ok = await confirmDialog('Texte an einen Server senden?',
+    `Solange der Server-Modus an ist, gehen die Texte, die Tizian glätten oder lösen soll, an:\n${srvHost()}\n\nDort werden sie verarbeitet – sie verlassen also dein iPad. Nutze nur einen Server, dem du vertraust, am besten deinen eigenen. Ein API-Schlüssel wird nur auf diesem Gerät gespeichert.`, 'Server nutzen');
+  if (!ok) { e.target.checked = false; return; }
+  SRV.on = true; saveSrv(); applyServer(); toast(`Tizian läuft jetzt auf ${srvHost()}.`);
+});
+$('#srvTest').addEventListener('click', async e => {
+  const b = e.currentTarget, st = $('#srvStatus');
+  const saved = { on: SRV.on };
+  SRV.url = $('#srvUrl').value.trim(); SRV.model = $('#srvModel').value.trim(); SRV.key = $('#srvKey').value.trim(); saveSrv();
+  if (!srvEndpoint(SRV.url)) { st.textContent = 'Bitte zuerst die Server-Adresse eintragen.'; return; }
+  b.disabled = true; b.innerHTML = '<span class="spin dark"></span> Verbindung wird getestet …'; st.textContent = '';
+  const t0 = performance.now();
+  try {
+    const r = await serverGenerate([{ role: 'user', content: 'Antworte nur mit dem Wort: OK' }], { max_new_tokens: 8, do_sample: false });
+    st.textContent = `Verbunden mit ${srvHost()} (${((performance.now() - t0) / 1000).toFixed(1)} s). Antwort: „${(r.text || '').trim().slice(0, 40)}“` + (saved.on ? '' : ' – jetzt oben „Text auf Server verarbeiten“ einschalten.');
+  } catch (err) { st.textContent = String((err && err.message) || err); }
+  b.disabled = false; b.textContent = 'Verbindung testen';
+});
+A.infoFill.ki = el => {
+  $('#gpuDetail', el).textContent = SRV.on && AI.loaded === 'server' ? `Server-Modus aktiv: Texte für Tizian gehen an ${srvHost()}.` : (AI.gpuDetail || 'WebGPU wird geprüft …');
+};
 function onWorkerMessage(m) {
   if (m.t === 'log') aiLog(m.m);
   else if (m.t === 'phase') { AI.phase = m.p; AI.cached = !!m.cached; runMark(m.p); aiLog(m.cached ? 'Starte Tizian aus dem gesicherten Download' : 'Starte Tizian'); updateLoadMsg(); }
@@ -2985,10 +3125,9 @@ function showFactWarn() {
 }
 $('#cmpAi').addEventListener('input', showFactWarn);
 /* Ein Knopf für alles: ist Tizian noch nicht geladen, startet der Tipp das Laden und glättet danach automatisch */
-A.infoFill.ki = el => { $('#gpuDetail', el).textContent = AI.gpuDetail || 'WebGPU wird geprüft …'; };
 document.addEventListener('tw-ai-state', () => {
   const b = $('#btnRewrite'), loading = AI.state === 'loading';
-  b.disabled = !AI.gpu || loading;
+  b.disabled = !(AI.gpu || (SRV.on && AI.loaded === 'server')) || loading;
   b.innerHTML = loading ? '<span class="spin"></span> Tizian wird geladen …' : 'Text jetzt glätten';
 });
 $('#btnRewrite').addEventListener('click', async () => {
@@ -3153,6 +3292,7 @@ window.TWApp.termCheck = termCheck;
 
 /* ---------- Datenschutz & Speicher ---------- */
 async function refreshSettingsModal() {
+  const ps = $('#privServer'); ps.hidden = !(SRV.on && AI.loaded === 'server'); ps.innerHTML = `<b>Server-Modus ist an:</b> Texte, die Tizian bearbeiten soll, gehen an <code>${esc(srvHost())}</code>. Ausschalten unter Text &amp; KI → Tizian → „Server statt lokal“.`;
   let bytes = 0;
   for (const k of Object.values(K)) { try { const v = localStorage.getItem(k); if (v) bytes += v.length * 2; } catch (e) { /* egal */ } }
   let extra = '';
@@ -3207,6 +3347,7 @@ function init() {
   refreshBlattPanel();
   A.relayout(true);
   detectGpu();
+  if (SRV.on) applyServer();
   IDB.get('own').then(o => {
     if (o && o.glyphs && Object.keys(o.glyphs).length >= Object.keys(S.own.glyphs).length) { S.own = o; renderTiles(); refreshBlattPanel(); A.relayout(true); }
     else if (Object.keys(S.own.glyphs).length) IDB.set('own', S.own).catch(() => {});        // ältere Kopie aus localStorage übernehmen
@@ -3237,13 +3378,13 @@ const saveProfile = () => { P.name = $('#stuName').value.trim().slice(0, 40); P.
 
 /* ---------- Zustand der Schaltflächen ---------- */
 function refresh() {
-  $('#btnSolvePages').disabled = $('#btnSolveEditor').disabled = $('#btnSolveStaging').disabled = !AI.gpu || AI.state === 'loading';
+  $('#btnSolvePages').disabled = $('#btnSolveEditor').disabled = $('#btnSolveStaging').disabled = !(AI.gpu || (AI.srv && AI.srv.on && AI.loaded === 'server')) || AI.state === 'loading';
   $('#solveHint').textContent = AI.state === 'ready' && AI.loaded === 'schnell' ? 'Tipp: Das Modell „Besser“ löst Aufgaben zuverlässiger.' : 'Buchseite senden, Tizian schreibt die Lösungen aufs Blatt.';
 }
 /* Tizian ist noch nicht geladen: Laden anstoßen (mit Rückfrage), danach tippt man erneut */
 function needTizian() {
   if (AI.state === 'ready') return false;
-  if (!AI.gpu) { toast('Tizian ist auf diesem Gerät nicht verfügbar (WebGPU fehlt).'); return true; }
+  if (!AI.gpu) { toast('Tizian läuft auf diesem Gerät nicht lokal. Unter „Server statt lokal“ kannst du einen Server eintragen.', 5000); return true; }
   toast('Tizian wird zuerst geladen. Danach bitte erneut tippen.', 4500);
   $('#btnLoadModel').click();
   return true;

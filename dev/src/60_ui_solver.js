@@ -18,13 +18,13 @@ const saveProfile = () => { P.name = $('#stuName').value.trim().slice(0, 40); P.
 
 /* ---------- Zustand der Schaltflächen ---------- */
 function refresh() {
-  $('#btnSolvePages').disabled = $('#btnSolveEditor').disabled = $('#btnSolveStaging').disabled = !AI.gpu || AI.state === 'loading';
+  $('#btnSolvePages').disabled = $('#btnSolveEditor').disabled = $('#btnSolveStaging').disabled = !(AI.gpu || (AI.srv && AI.srv.on && AI.loaded === 'server')) || AI.state === 'loading';
   $('#solveHint').textContent = AI.state === 'ready' && AI.loaded === 'schnell' ? 'Tipp: Das Modell „Besser“ löst Aufgaben zuverlässiger.' : 'Buchseite senden, Tizian schreibt die Lösungen aufs Blatt.';
 }
 /* Tizian ist noch nicht geladen: Laden anstoßen (mit Rückfrage), danach tippt man erneut */
 function needTizian() {
   if (AI.state === 'ready') return false;
-  if (!AI.gpu) { toast('Tizian ist auf diesem Gerät nicht verfügbar (WebGPU fehlt).'); return true; }
+  if (!AI.gpu) { toast('Tizian läuft auf diesem Gerät nicht lokal. Unter „Server statt lokal“ kannst du einen Server eintragen.', 5000); return true; }
   toast('Tizian wird zuerst geladen. Danach bitte erneut tippen.', 4500);
   $('#btnLoadModel').click();
   return true;

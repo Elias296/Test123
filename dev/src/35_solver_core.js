@@ -83,7 +83,8 @@ TW.solver = (function () {
   }
   /* Eine Aufgabe, die nur aus Rechenzeilen besteht (z. B. "a) 3+4 =\nb) 5·6 =") → Zeilen mit Ergebnis oder null */
   function calcTask(text) {
-    let lines = String(text || '').split('\n').map(s => s.trim()).filter(Boolean);
+    let lines = String(text || '').split('\n').map(s => s.trim()).filter(Boolean)
+      .map(l => l.replace(/^[A-Za-zÄÖÜäöüß ]{3,40}:\s*(?=[\d(−-])/, ''));          // "Berechne: 12 + 30 =" -> "12 + 30 ="
     if (lines.some(l => calcLine(l))) lines = lines.filter(l => !(l.length < 45 && !/\d/.test(l) && /:$/.test(l)));    // Anweisungszeile wie "Berechne:" überspringen
     if (!lines.length || lines.length > 12) return null;
     const out = [];
